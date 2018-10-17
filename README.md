@@ -1,0 +1,83 @@
+# healmex
+
+A package providing Matlab bindings to the [HEALPix][healpix] C++ package.
+
+## Build Requirements
+
+- GCC 7+ (or a compiler which supports C++17's structured bindings)
+- Matlab R2018a+
+- CMake 3.9.0+
+- `pkg-config` (or `pkgconf`)
+- Internet connection (to download HEALPix sources)
+  - HEALPix v3.40 is used
+- HEALPix's build requirements, such as:
+  - GNU Autotools (`autoreconf`, `make`, etc)
+  - CFITSIO
+
+At this time, compilation and use on Linux is the only tested and supported
+platform.
+
+## Installation Instructions
+
+The repository can be cloned via `git` from GitHub:
+```bash
+$ git clone https://github.com/jmert/healmex.git
+```
+Configuration is performed via CMake's `cmake` or `ccmake` commands. For
+non-interactive use, the installation prefix (where the compiled MEX function
+and associated Matlab scripts) are installed to can be configured with:
+```bash
+$ cmake -DCMAKE_INSTALL_PREFIX=~/matlab/healmex
+```
+where `~/matlab/healmex` can be any other path of your choice. Then to build
+and install
+```bash
+$ make && make install
+```
+The build will start by downloading HEALPix, unpacking it, and compiling the
+C++ library. (The C and Fortran components are not built!) After that, the MEX
+function bindings to HEALPix's C++ APIs is compiled.
+
+To use within Matlab, the installation path should be added into Matlab's
+runtime path:
+```matlab
+>> addpath('~/matlab/healmex')
+```
+Adding a similar line to your `startup.m` file may be useful.
+
+## Usage
+
+The bindings in Matlab are presented as static methods of the `healmex`
+class. A list of all methods can be obtained with `disp(healmex)`:
+```matlab
+>> disp(healmex)
+healmex with methods:
+    ...
+```
+Help is available for each binding
+```matlab
+>> help healmex.pix2ang
+  [theta,phi] = pix2ang(nside, ipix)
+
+  Calculates HEALPix pixel center locations for pixel indices ipix in an
+  Nside = nside map, returning the colatitude theta and azimuth phi spherical
+  locations.
+```
+with descriptions of the calling convention for each binding. For example,
+a call to `pix2ang` to convert pixel 72 in an Nside = 4 map to θ and φ
+coordinates is accomplished with a call like:
+```matlab
+>> [th,ph] = healmex.pix2ang(4, 74)
+
+th =
+
+    1.4033
+
+
+ph =
+
+    0.7854
+
+```
+
+[healpix]: https://healpix.sourceforge.io/index.php
