@@ -1,4 +1,6 @@
 /healpix-*/
+/mex/src/
+/mex/tmp/
 
 ### CMake ###
 CMakeCache.txt

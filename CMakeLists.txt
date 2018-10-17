@@ -1,9 +1,23 @@
-# Minimum version currently set by: FindMatlab.cmake module
-cmake_minimum_required(VERSION 3.3.0)
+# Minimum version requirements:
+#   3.6.0 - IMPORTED_TARGET argument to pkg_search_modules in FindPkgConfig.cmake
+#   3.8.0 - CXX_STANDARD 17 available
+#   3.9.0 - imported target in FindOpenMP.cmake
+cmake_minimum_required(VERSION 3.9.0)
+cmake_policy(SET CMP0017 NEW) # https://cmake.org/cmake/help/v3.11/policy/CMP0017.html
+
 project(healmat CXX)
 
+# Can be removed once cmake_minimum_required bumped beyond 3.13 where
+# R2018a-aware FindMatlab.cmake is provided.
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/")
+
+# Include environment's paths library searches
+set(CMAKE_LIBRARY_PATH ${CMAKE_LIBRARY_PATH} $ENV{LIBRARY_PATH})
+if (NOT WIN32)
+    string(REPLACE ":" ";" CMAKE_LIBRARY_PATH ${CMAKE_LIBRARY_PATH})
+endif()
+
 include(ExternalProject)
-find_package(Matlab 9.4 REQUIRED) # 9.4 == R2018a
 find_package(OpenMP)
 find_package(PkgConfig REQUIRED)
 
@@ -57,3 +71,25 @@ ExternalProject_Add(healpix
         make install
 )
 add_dependencies(healpix healpix_download)
+ExternalProject_Get_Property(healpix install_dir)
+set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} ${install_dir})
+
+# Since we need to have the libhealpix_cxx built and installed for the
+# next step to be configurable itself, we have to run the MEX build as an
+# external project as well.
+ExternalProject_Add(healmex
+    PREFIX "mex"
+    SOURCE_DIR "${CMAKE_SOURCE_DIR}/mex"
+    CMAKE_ARGS
+        "-DCMAKE_PREFIX_PATH:PATH=${CMAKE_PREFIX_PATH}"
+        "-DCMAKE_INSTALL_PREFIX:PATH=${CMAKE_BINARY_DIR}"
+        "-DCMAKE_MODULE_PATH:PATH=${CMAKE_MODULE_PATH}"
+)
+add_dependencies(healmex healpix)
+
+if (NOT (${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR}))
+    add_custom_command(TARGET healmex POST_BUILD
+        COMMENT "Copying Matlab sources to ${CMAKE_BINARY_DIR}"
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+            ${CMAKE_SOURCE_DIR}/matlab/ ${CMAKE_BINARY_DIR}/matlab)
+endif()
