@@ -7,8 +7,11 @@ cmake_policy(SET CMP0017 NEW) # https://cmake.org/cmake/help/v3.11/policy/CMP001
 
 project(healmat CXX)
 
-# Can be removed once cmake_minimum_required bumped beyond 3.13 where
-# R2018a-aware FindMatlab.cmake is provided.
+# cmake/FindMatlab.cmake can be deleted and this line removed once
+# cmake_minimum_required bumped beyond 3.13.? where FindMatlab.cmake
+# becomes fully R2018a-aware and C++ Data API compatible.
+#   As of 2018 Oct 18, CMake master needs PR2442 + comments' patches applied
+#   to setup MEX build correctly.
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/")
 
 # Include environment's paths library searches
@@ -21,6 +24,8 @@ include(ExternalProject)
 find_package(OpenMP)
 find_package(PkgConfig REQUIRED)
 
+# The HEALPix package does its own search, but we can do a pkg-config search
+# here during config to error out earlier.
 pkg_search_module(CFITSIO REQUIRED cfitsio)
 
 # Basic information required to download and compile the official HEALPix
@@ -42,8 +47,8 @@ else()
     set(HEALPIX_WITH_OPENMP "--disable-openmp")
 endif()
 
-# Because we only want the the src/cxx/autotools directory, we separate the
-# build process into two pieces:
+# Because we only want to build the src/cxx/autotools directory, we separate
+# the build process into two pieces:
 #   1. Download, unpack, and patch (if needed) the sources.
 #   2. In a second step, perform the build, with the dependency configured
 #      for a base path within the first target's expanded source tree.
@@ -87,9 +92,14 @@ ExternalProject_Add(healmex
 )
 add_dependencies(healmex healpix)
 
+# Copy Matlab scripts into the build directory.
 if (NOT (${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR}))
     add_custom_command(TARGET healmex POST_BUILD
         COMMENT "Copying Matlab sources to ${CMAKE_BINARY_DIR}"
         COMMAND ${CMAKE_COMMAND} -E copy_directory
             ${CMAKE_SOURCE_DIR}/matlab/ ${CMAKE_BINARY_DIR}/matlab)
 endif()
+
+# Installation instructions for MEX + scripts
+install(DIRECTORY ${CMAKE_BINARY_DIR}/matlab/
+    DESTINATION ${CMAKE_INSTALL_PREFIX})
