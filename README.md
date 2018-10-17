@@ -17,6 +17,14 @@ A package providing Matlab bindings to the [HEALPix][healpix] C++ package.
 At this time, compilation and use on Linux is the only tested and supported
 platform.
 
+It is not planned to provide support for any versions of Matlab older than
+R2018a since it is the first version which provides the [interleaved][]
+complex data storage format. This new option finally provides a format
+compatible with standard complex data types (e.g. `double complex` in C and
+`complex<double>` in C++). In Matlab's prior format, complex arrays must be
+duplicated (doubling memory requirements) and copied on each entrance/exit
+across the Matlab/C++ boundary.
+
 ## Installation Instructions
 
 The repository can be cloned via `git` from GitHub:
@@ -81,3 +89,5 @@ ph =
 ```
 
 [healpix]: https://healpix.sourceforge.io/index.php
+[interleaved]: https://www.mathworks.com/help/matlab/matlab_external/matlab-support-for-interleaved-complex.html
+
