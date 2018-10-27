@@ -10,7 +10,7 @@ project(healmat CXX)
 # cmake/FindMatlab.cmake can be deleted and this line removed once
 # cmake_minimum_required bumped beyond 3.13.? where FindMatlab.cmake
 # becomes fully R2018a-aware and C++ Data API compatible.
-#   As of 2018 Oct 18, CMake master needs PR2442 + comments' patches applied
+#   As of 2018 Oct 27, CMake master needs PR2508's patches applied
 #   to setup MEX build correctly.
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/")
 

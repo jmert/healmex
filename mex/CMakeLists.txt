@@ -21,8 +21,7 @@ set(SOURCES libhealmex.cpp)
 
 matlab_add_mex(NAME libhealmex SHARED
     SRC ${SOURCES}
-    MEX_API C++
-    MATLAB_DEFAULT_RELEASE R2018a
+    R2018a
 )
 set_target_properties(libhealmex PROPERTIES
     CXX_STANDARD 17
