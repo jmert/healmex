@@ -4,7 +4,7 @@ cmake_policy(SET CMP0017 NEW) # https://cmake.org/cmake/help/v3.11/policy/CMP001
 project(healmex CXX)
 
 set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS}
-    "-g -O -fexceptions -fno-omit-frame-pointer")
+    "-g -O2 -fexceptions -fno-omit-frame-pointer")
 set(CMAKE_SHARED_LINKER_FLAGS ${CMAKE_SHARED_LINKER_FLAGS}
     "-Wl,--no-undefined")
 

@@ -1,12 +1,16 @@
-function [theta,phi] = pix2ang(nside, ipix)
-% [theta,phi] = pix2ang(nside, ipix)
+function [theta,phi] = pix2ang(nside, order, ipix)
+% [theta,phi] = pix2ang(nside, order, ipix)
 %
 % Calculates HEALPix pixel center locations for pixel indices ipix in an
-% Nside = nside map, returning the colatitude theta and azimuth phi spherical
-% locations.
-%
+% Nside = nside map with ordering scheme order, returning the colatitude theta
+% and azimuth phi spherical coordinates in radians. order may be 'RING' or
+% 'NESTED'.
+
+  if ~exist('order','var') || isempty(order)
+    order = 'RING';
+  end
 
   [theta, phi] = libhealmex(healmex.id_pix2ang, ...
-      int64(nside), int64(ipix));
+      int64(nside), char(order), int64(ipix));
 end
 

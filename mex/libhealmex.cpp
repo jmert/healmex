@@ -16,6 +16,7 @@ using healmap = Healpix_Map<double>;
 
 /* Useful type predicates */
 
+inline bool ischar(Array& a)      { return a.getType() == ArrayType::CHAR; }
 inline bool isint64(Array& a)     { return a.getType() == ArrayType::INT64; }
 inline bool isdouble(Array& a)    { return a.getType() == ArrayType::DOUBLE; }
 inline bool iscomplex64(Array& a) { return a.getType() == ArrayType::COMPLEX_DOUBLE; }
@@ -30,9 +31,14 @@ template <typename T, typename A> buffer_ptr_t<T> buffer(A array);
 
 enum libhealpix_mex_calls {
     id_heartbeat    = -1,
-    id_pix2vec      = 1,
-    id_pix2zphi     = 2,
-    id_pix2ang      = 3,
+    id_nest2ring    =  1,
+    id_ring2nest    =  2,
+    id_pix2vec      = 11,
+    id_pix2zphi     = 12,
+    id_pix2ang      = 13,
+    id_vec2pix      = 14,
+    id_zphi2pix     = 15,
+    id_ang2pix      = 16,
 };
 
 class MexFunction : public matlab::mex::Function {
@@ -95,18 +101,86 @@ public:
             if (!iscomplex64(inputs[num])) { \
                 error(funcname ": argument " #num " (" argname ") must of type complex double.", num); \
             } )
+        #define CHECK_INPUT_CHAR(funcname, argname, num) CHECK_WRAP( \
+            if (!ischar(inputs[num])) { \
+                error(funcname ": argument " #num " (" argname ") must of type char.", num); \
+            } )
 
         switch (dispatch) {
             case id_heartbeat:
                 outputs[0] = factory.createScalar(true);
                 break;
 
+            case id_nest2ring:
+                CHECK_NINOUT("nest2ring", 2, 1);
+                CHECK_INPUT_SCALAR("nest2ring", "nside", 1);
+                CHECK_INPUT_INT64("nest2ring", "nside", 1);
+                CHECK_INPUT_INT64("nest2ring", "ipix", 2);
+                mex_nest2ring(outputs, inputs);
+                break;
+
+            case id_ring2nest:
+                CHECK_NINOUT("ring2nest", 2, 1);
+                CHECK_INPUT_SCALAR("ring2nest", "nside", 1);
+                CHECK_INPUT_INT64("ring2nest", "nside", 1);
+                CHECK_INPUT_INT64("ring2nest", "ipix", 2);
+                mex_ring2nest(outputs, inputs);
+                break;
+
+            case id_pix2vec:
+                CHECK_NINOUT("pix2vec", 3, 1);
+                CHECK_INPUT_SCALAR("pix2vec", "nside", 1);
+                CHECK_INPUT_INT64("pix2vec", "nside", 1);
+                CHECK_INPUT_CHAR("pix2vec", "order", 2);
+                CHECK_INPUT_INT64("pix2vec", "ipix", 3);
+                mex_pix2vec(outputs, inputs);
+                break;
+
+            case id_pix2zphi:
+                CHECK_NINOUT("pix2zphi", 3, 2);
+                CHECK_INPUT_SCALAR("pix2zphi", "nside", 1);
+                CHECK_INPUT_INT64("pix2zphi", "nside", 1);
+                CHECK_INPUT_CHAR("pix2zphi", "order", 2);
+                CHECK_INPUT_INT64("pix2zphi", "ipix", 3);
+                mex_pix2zphi(outputs, inputs);
+                break;
+
             case id_pix2ang:
-                CHECK_NINOUT("pix2ang", 2, 2);
+                CHECK_NINOUT("pix2ang", 3, 2);
                 CHECK_INPUT_SCALAR("pix2ang", "nside", 1);
                 CHECK_INPUT_INT64("pix2ang", "nside", 1);
-                CHECK_INPUT_INT64("pix2ang", "ipix", 2);
+                CHECK_INPUT_CHAR("pix2ang", "order", 2);
+                CHECK_INPUT_INT64("pix2ang", "ipix", 3);
                 mex_pix2ang(outputs, inputs);
+                break;
+
+            case id_vec2pix:
+                CHECK_NINOUT("vec2pix", 3, 1);
+                CHECK_INPUT_SCALAR("vec2pix", "nside", 1);
+                CHECK_INPUT_INT64("vec2pix", "nside", 1);
+                CHECK_INPUT_CHAR("vec2pix", "order", 2);
+                CHECK_INPUT_DOUBLE("vec2pix", "vec", 3);
+                mex_vec2pix(outputs, inputs);
+                break;
+
+            case id_zphi2pix:
+                CHECK_NINOUT("zphi2pix", 4, 1);
+                CHECK_INPUT_SCALAR("zphi2pix", "nside", 1);
+                CHECK_INPUT_INT64("zphi2pix", "nside", 1);
+                CHECK_INPUT_CHAR("zphi2pix", "order", 2);
+                CHECK_INPUT_DOUBLE("zphi2pix", "z", 3);
+                CHECK_INPUT_DOUBLE("zphi2pix", "phi", 4);
+                mex_zphi2pix(outputs, inputs);
+                break;
+
+            case id_ang2pix:
+                CHECK_NINOUT("ang2pix", 4, 1);
+                CHECK_INPUT_SCALAR("ang2pix", "nside", 1);
+                CHECK_INPUT_INT64("ang2pix", "nside", 1);
+                CHECK_INPUT_CHAR("ang2pix", "order", 2);
+                CHECK_INPUT_DOUBLE("ang2pix", "theta", 3);
+                CHECK_INPUT_DOUBLE("ang2pix", "phi", 4);
+                mex_ang2pix(outputs, inputs);
                 break;
 
             default:
@@ -118,7 +192,18 @@ private:
     std::shared_ptr<matlab::engine::MATLABEngine> engine = getEngine();
     ArrayFactory factory;
 
-    void mex_pix2ang(ArgumentList& outputs, ArgumentList& inputs);
+    #define DISPATCH_FN(name) \
+        void mex_##name(ArgumentList& outputs, ArgumentList& inputs)
+
+    DISPATCH_FN(nest2ring);
+    DISPATCH_FN(ring2nest);
+
+    DISPATCH_FN(pix2vec);
+    DISPATCH_FN(pix2zphi);
+    DISPATCH_FN(pix2ang);
+    DISPATCH_FN(vec2pix);
+    DISPATCH_FN(zphi2pix);
+    DISPATCH_FN(ang2pix);
 
     /*
      * Convenient wrappers to translate variadic arguments into a
@@ -183,13 +268,110 @@ tuple<healmap, buffer_ptr_t<double>> array2mapbuf(Array& ml_map)
 
 /* Externally callable function implementations */
 
-void MexFunction::mex_pix2ang(ArgumentList& outputs, ArgumentList& inputs) {
+void MexFunction::mex_nest2ring(ArgumentList& outputs, ArgumentList& inputs) {
     TypedArray<int64_t> ml_nside = inputs[1];
     TypedArray<int64_t> ml_ipix  = inputs[2];
     healpix base;
 
     int64_t nside = ml_nside[0];
     base.SetNside(nside, RING);
+
+    auto ipix  = buffer<int64_t>(ml_ipix);
+    auto dims  = ml_ipix.getDimensions();
+    auto npix  = ml_ipix.getNumberOfElements();
+    auto rpix = factory.createBuffer<int64_t>(npix);
+
+    #pragma omp parallel for
+    for (size_t ii = 0; ii < npix; ++ii) {
+        rpix[ii] = base.nest2ring(ipix[ii]);
+    }
+
+    outputs[0] = factory.createArrayFromBuffer(dims, move(rpix));
+}
+
+void MexFunction::mex_ring2nest(ArgumentList& outputs, ArgumentList& inputs) {
+    TypedArray<int64_t> ml_nside = inputs[1];
+    TypedArray<int64_t> ml_ipix  = inputs[2];
+    healpix base;
+
+    int64_t nside = ml_nside[0];
+    base.SetNside(nside, RING);
+
+    auto ipix  = buffer<int64_t>(ml_ipix);
+    auto dims  = ml_ipix.getDimensions();
+    auto npix  = ml_ipix.getNumberOfElements();
+    auto rpix = factory.createBuffer<int64_t>(npix);
+
+    #pragma omp parallel for
+    for (size_t ii = 0; ii < npix; ++ii) {
+        rpix[ii] = base.ring2nest(ipix[ii]);
+    }
+
+    outputs[0] = factory.createArrayFromBuffer(dims, move(rpix));
+}
+
+void MexFunction::mex_pix2vec(ArgumentList& outputs, ArgumentList& inputs) {
+    TypedArray<int64_t> ml_nside = inputs[1];
+    CharArray           ml_order = inputs[2];
+    TypedArray<int64_t> ml_ipix  = inputs[3];
+    healpix base;
+
+    int64_t nside = ml_nside[0];
+    auto order = string2HealpixScheme(ml_order.toAscii());
+    base.SetNside(nside, order);
+
+    auto ipix = buffer<int64_t>(ml_ipix);
+    auto npix = ml_ipix.getNumberOfElements();
+    auto vec  = factory.createBuffer<double>(3 * npix);
+    auto x = &vec[0];
+    auto y = &vec[npix];
+    auto z = &vec[2*npix];
+
+    #pragma omp parallel for
+    for (size_t ii = 0; ii < npix; ++ii) {
+        auto r = base.pix2vec(ipix[ii]);
+        x[ii] = r.x;
+        y[ii] = r.y;
+        z[ii] = r.z;
+    }
+
+    outputs[0] = factory.createArrayFromBuffer({npix, 3}, move(vec));
+}
+
+void MexFunction::mex_pix2zphi(ArgumentList& outputs, ArgumentList& inputs) {
+    TypedArray<int64_t> ml_nside = inputs[1];
+    CharArray           ml_order = inputs[2];
+    TypedArray<int64_t> ml_ipix  = inputs[3];
+    healpix base;
+
+    int64_t nside = ml_nside[0];
+    auto order = string2HealpixScheme(ml_order.toAscii());
+    base.SetNside(nside, order);
+
+    auto ipix  = buffer<int64_t>(ml_ipix);
+    auto dims  = ml_ipix.getDimensions();
+    auto npix  = ml_ipix.getNumberOfElements();
+    auto z     = factory.createBuffer<double>(npix);
+    auto phi   = factory.createBuffer<double>(npix);
+
+    #pragma omp parallel for
+    for (size_t ii = 0; ii < npix; ++ii) {
+        base.pix2zphi(ipix[ii], z[ii], phi[ii]);
+    }
+
+    outputs[0] = factory.createArrayFromBuffer(dims, move(z));
+    outputs[1] = factory.createArrayFromBuffer(dims, move(phi));
+}
+
+void MexFunction::mex_pix2ang(ArgumentList& outputs, ArgumentList& inputs) {
+    TypedArray<int64_t> ml_nside = inputs[1];
+    CharArray           ml_order = inputs[2];
+    TypedArray<int64_t> ml_ipix  = inputs[3];
+    healpix base;
+
+    int64_t nside = ml_nside[0];
+    auto order = string2HealpixScheme(ml_order.toAscii());
+    base.SetNside(nside, order);
 
     auto ipix  = buffer<int64_t>(ml_ipix);
     auto dims  = ml_ipix.getDimensions();
@@ -208,3 +390,89 @@ void MexFunction::mex_pix2ang(ArgumentList& outputs, ArgumentList& inputs) {
     outputs[1] = factory.createArrayFromBuffer(dims, move(phi));
 }
 
+void MexFunction::mex_vec2pix(ArgumentList& outputs, ArgumentList& inputs) {
+    TypedArray<int64_t> ml_nside = inputs[1];
+    CharArray           ml_order = inputs[2];
+    TypedArray<double>  ml_vec   = inputs[3];
+    healpix base;
+
+    int64_t nside = ml_nside[0];
+    auto order = string2HealpixScheme(ml_order.toAscii());
+    base.SetNside(nside, order);
+
+    auto dims  = ml_vec.getDimensions();
+    if (dims.size() != 2 || dims[1] != 3) {
+        error("vec2pix: vec must be a N-by-3 matrix of Cartesian coordinates");
+    }
+    auto npix  = dims[0];
+    auto vec   = buffer<double>(ml_vec);
+    auto ipix  = factory.createBuffer<int64_t>(npix);
+    auto x = &vec[0];
+    auto y = &vec[npix];
+    auto z = &vec[2*npix];
+
+    #pragma omp parallel for
+    for (size_t ii = 0; ii < npix; ++ii) {
+        auto v = vec3(x[ii], y[ii], z[ii]);
+        ipix[ii] = base.vec2pix(v);
+    }
+
+    outputs[0] = factory.createArrayFromBuffer({npix}, move(ipix));
+}
+
+void MexFunction::mex_zphi2pix(ArgumentList& outputs, ArgumentList& inputs) {
+    TypedArray<int64_t> ml_nside = inputs[1];
+    CharArray           ml_order = inputs[2];
+    TypedArray<double>  ml_z     = inputs[3];
+    TypedArray<double>  ml_phi   = inputs[4];
+    healpix base;
+
+    int64_t nside = ml_nside[0];
+    auto order = string2HealpixScheme(ml_order.toAscii());
+    base.SetNside(nside, order);
+
+    auto dims = ml_z.getDimensions();
+    auto npix = ml_z.getNumberOfElements();
+    if (dims != ml_phi.getDimensions()) {
+        error("zphi2pix: theta and phi must be same sizes");
+    }
+    auto z    = buffer<double>(ml_z);
+    auto phi  = buffer<double>(ml_phi);
+    auto ipix = factory.createBuffer<int64_t>(npix);
+
+    #pragma omp parallel for
+    for (size_t ii = 0; ii < npix; ++ii) {
+        ipix[ii] = base.zphi2pix(z[ii], phi[ii]);
+    }
+
+    outputs[0] = factory.createArrayFromBuffer({npix}, move(ipix));
+}
+
+void MexFunction::mex_ang2pix(ArgumentList& outputs, ArgumentList& inputs) {
+    TypedArray<int64_t> ml_nside = inputs[1];
+    CharArray           ml_order = inputs[2];
+    TypedArray<double>  ml_theta = inputs[3];
+    TypedArray<double>  ml_phi   = inputs[4];
+    healpix base;
+
+    int64_t nside = ml_nside[0];
+    auto order = string2HealpixScheme(ml_order.toAscii());
+    base.SetNside(nside, order);
+
+    auto dims = ml_theta.getDimensions();
+    auto npix = ml_theta.getNumberOfElements();
+    if (dims != ml_phi.getDimensions()) {
+        error("ang2pix: theta and phi must be same sizes");
+    }
+    auto theta = buffer<double>(ml_theta);
+    auto phi   = buffer<double>(ml_phi);
+    auto ipix  = factory.createBuffer<int64_t>(npix);
+
+    #pragma omp parallel for
+    for (size_t ii = 0; ii < npix; ++ii) {
+        auto point = pointing(theta[ii], phi[ii]);
+        ipix[ii] = base.ang2pix(point);
+    }
+
+    outputs[0] = factory.createArrayFromBuffer({npix}, move(ipix));
+}
