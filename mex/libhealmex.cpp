@@ -205,6 +205,8 @@ private:
     DISPATCH_FN(zphi2pix);
     DISPATCH_FN(ang2pix);
 
+    #undef DISPATCH_FN
+
     /*
      * Convenient wrappers to translate variadic arguments into a
      * vector<Array> list required by the Matlab API. i.e.
@@ -266,15 +268,34 @@ tuple<healmap, buffer_ptr_t<double>> array2mapbuf(Array& ml_map)
     return tuple{move(map), move(buf)};
 }
 
+// Turns a Matlab arrays giving the Nside into a HEALPix object, assuming
+// RING ordering.
+inline
+healpix nsideorder(const TypedArray<int64_t> ml_nside)
+{
+    int64_t nside = ml_nside[0];
+    return healpix(nside, RING, SET_NSIDE);
+}
+
+// Turns a pair of Matlab arrays giving the Nside and ordering scheme into
+// a HEALPix object.
+inline
+healpix nsideorder(const TypedArray<int64_t> ml_nside,
+                   const CharArray ml_order)
+{
+    int64_t nside = ml_nside[0];
+    auto order = string2HealpixScheme(ml_order.toAscii());
+    return healpix(nside, order, SET_NSIDE);
+}
+
 /* Externally callable function implementations */
 
-void MexFunction::mex_nest2ring(ArgumentList& outputs, ArgumentList& inputs) {
-    TypedArray<int64_t> ml_nside = inputs[1];
-    TypedArray<int64_t> ml_ipix  = inputs[2];
-    healpix base;
+#define DISPATCH_FN(name) \
+    void MexFunction::mex_##name(ArgumentList& outputs, ArgumentList& inputs)
 
-    int64_t nside = ml_nside[0];
-    base.SetNside(nside, RING);
+DISPATCH_FN(nest2ring) {
+    healpix base = nsideorder(inputs[1]);
+    TypedArray<int64_t> ml_ipix  = inputs[2];
 
     auto ipix  = buffer<int64_t>(ml_ipix);
     auto dims  = ml_ipix.getDimensions();
@@ -289,13 +310,9 @@ void MexFunction::mex_nest2ring(ArgumentList& outputs, ArgumentList& inputs) {
     outputs[0] = factory.createArrayFromBuffer(dims, move(rpix));
 }
 
-void MexFunction::mex_ring2nest(ArgumentList& outputs, ArgumentList& inputs) {
-    TypedArray<int64_t> ml_nside = inputs[1];
+DISPATCH_FN(ring2nest) {
+    healpix base = nsideorder(inputs[1]);
     TypedArray<int64_t> ml_ipix  = inputs[2];
-    healpix base;
-
-    int64_t nside = ml_nside[0];
-    base.SetNside(nside, RING);
 
     auto ipix  = buffer<int64_t>(ml_ipix);
     auto dims  = ml_ipix.getDimensions();
@@ -310,15 +327,9 @@ void MexFunction::mex_ring2nest(ArgumentList& outputs, ArgumentList& inputs) {
     outputs[0] = factory.createArrayFromBuffer(dims, move(rpix));
 }
 
-void MexFunction::mex_pix2vec(ArgumentList& outputs, ArgumentList& inputs) {
-    TypedArray<int64_t> ml_nside = inputs[1];
-    CharArray           ml_order = inputs[2];
+DISPATCH_FN(pix2vec) {
+    healpix base = nsideorder(inputs[1], inputs[2]);
     TypedArray<int64_t> ml_ipix  = inputs[3];
-    healpix base;
-
-    int64_t nside = ml_nside[0];
-    auto order = string2HealpixScheme(ml_order.toAscii());
-    base.SetNside(nside, order);
 
     auto ipix = buffer<int64_t>(ml_ipix);
     auto npix = ml_ipix.getNumberOfElements();
@@ -338,15 +349,9 @@ void MexFunction::mex_pix2vec(ArgumentList& outputs, ArgumentList& inputs) {
     outputs[0] = factory.createArrayFromBuffer({npix, 3}, move(vec));
 }
 
-void MexFunction::mex_pix2zphi(ArgumentList& outputs, ArgumentList& inputs) {
-    TypedArray<int64_t> ml_nside = inputs[1];
-    CharArray           ml_order = inputs[2];
+DISPATCH_FN(pix2zphi) {
+    healpix base = nsideorder(inputs[1], inputs[2]);
     TypedArray<int64_t> ml_ipix  = inputs[3];
-    healpix base;
-
-    int64_t nside = ml_nside[0];
-    auto order = string2HealpixScheme(ml_order.toAscii());
-    base.SetNside(nside, order);
 
     auto ipix  = buffer<int64_t>(ml_ipix);
     auto dims  = ml_ipix.getDimensions();
@@ -363,15 +368,9 @@ void MexFunction::mex_pix2zphi(ArgumentList& outputs, ArgumentList& inputs) {
     outputs[1] = factory.createArrayFromBuffer(dims, move(phi));
 }
 
-void MexFunction::mex_pix2ang(ArgumentList& outputs, ArgumentList& inputs) {
-    TypedArray<int64_t> ml_nside = inputs[1];
-    CharArray           ml_order = inputs[2];
+DISPATCH_FN(pix2ang) {
+    healpix base = nsideorder(inputs[1], inputs[2]);
     TypedArray<int64_t> ml_ipix  = inputs[3];
-    healpix base;
-
-    int64_t nside = ml_nside[0];
-    auto order = string2HealpixScheme(ml_order.toAscii());
-    base.SetNside(nside, order);
 
     auto ipix  = buffer<int64_t>(ml_ipix);
     auto dims  = ml_ipix.getDimensions();
@@ -390,15 +389,9 @@ void MexFunction::mex_pix2ang(ArgumentList& outputs, ArgumentList& inputs) {
     outputs[1] = factory.createArrayFromBuffer(dims, move(phi));
 }
 
-void MexFunction::mex_vec2pix(ArgumentList& outputs, ArgumentList& inputs) {
-    TypedArray<int64_t> ml_nside = inputs[1];
-    CharArray           ml_order = inputs[2];
+DISPATCH_FN(vec2pix) {
+    healpix base = nsideorder(inputs[1], inputs[2]);
     TypedArray<double>  ml_vec   = inputs[3];
-    healpix base;
-
-    int64_t nside = ml_nside[0];
-    auto order = string2HealpixScheme(ml_order.toAscii());
-    base.SetNside(nside, order);
 
     auto dims  = ml_vec.getDimensions();
     if (dims.size() != 2 || dims[1] != 3) {
@@ -420,16 +413,10 @@ void MexFunction::mex_vec2pix(ArgumentList& outputs, ArgumentList& inputs) {
     outputs[0] = factory.createArrayFromBuffer({npix}, move(ipix));
 }
 
-void MexFunction::mex_zphi2pix(ArgumentList& outputs, ArgumentList& inputs) {
-    TypedArray<int64_t> ml_nside = inputs[1];
-    CharArray           ml_order = inputs[2];
+DISPATCH_FN(zphi2pix) {
+    healpix base = nsideorder(inputs[1], inputs[2]);
     TypedArray<double>  ml_z     = inputs[3];
     TypedArray<double>  ml_phi   = inputs[4];
-    healpix base;
-
-    int64_t nside = ml_nside[0];
-    auto order = string2HealpixScheme(ml_order.toAscii());
-    base.SetNside(nside, order);
 
     auto dims = ml_z.getDimensions();
     auto npix = ml_z.getNumberOfElements();
@@ -448,16 +435,10 @@ void MexFunction::mex_zphi2pix(ArgumentList& outputs, ArgumentList& inputs) {
     outputs[0] = factory.createArrayFromBuffer({npix}, move(ipix));
 }
 
-void MexFunction::mex_ang2pix(ArgumentList& outputs, ArgumentList& inputs) {
-    TypedArray<int64_t> ml_nside = inputs[1];
-    CharArray           ml_order = inputs[2];
+DISPATCH_FN(ang2pix) {
+    healpix base = nsideorder(inputs[1], inputs[2]);
     TypedArray<double>  ml_theta = inputs[3];
     TypedArray<double>  ml_phi   = inputs[4];
-    healpix base;
-
-    int64_t nside = ml_nside[0];
-    auto order = string2HealpixScheme(ml_order.toAscii());
-    base.SetNside(nside, order);
 
     auto dims = ml_theta.getDimensions();
     auto npix = ml_theta.getNumberOfElements();
