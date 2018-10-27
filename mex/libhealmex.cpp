@@ -6,6 +6,9 @@
 #include <vector>
 
 #include <healpix_map.h>
+#include <alm.h>
+#include <alm_healpix_tools.h>
+#include <powspec.h>
 
 using namespace std;
 using namespace matlab::data;
@@ -17,6 +20,7 @@ using healmap = Healpix_Map<double>;
 /* Useful type predicates */
 
 inline bool ischar(Array& a)      { return a.getType() == ArrayType::CHAR; }
+inline bool isint32(Array& a)     { return a.getType() == ArrayType::INT32; }
 inline bool isint64(Array& a)     { return a.getType() == ArrayType::INT64; }
 inline bool isdouble(Array& a)    { return a.getType() == ArrayType::DOUBLE; }
 inline bool iscomplex64(Array& a) { return a.getType() == ArrayType::COMPLEX_DOUBLE; }
@@ -24,6 +28,7 @@ inline bool iscomplex64(Array& a) { return a.getType() == ArrayType::COMPLEX_DOU
 inline bool isscalar(Array& a) { return a.getNumberOfElements() == 1; }
 
 template <typename T, typename A> buffer_ptr_t<T> buffer(A array);
+template <typename T, typename A> T scalar(const A array);
 
 /*
  * MEX entry point
@@ -39,6 +44,8 @@ enum libhealpix_mex_calls {
     id_vec2pix      = 14,
     id_zphi2pix     = 15,
     id_ang2pix      = 16,
+    id_map2alm_iter = 51,
+    id_alm2cl       = 61,
 };
 
 class MexFunction : public matlab::mex::Function {
@@ -88,6 +95,10 @@ public:
         #define CHECK_INPUT_SCALAR(funcname, argname, num) CHECK_WRAP( \
             if (!isscalar(inputs[num])) { \
                 error(funcname ": argument " #num " (" argname ") must be a scalar.", num); \
+            } )
+        #define CHECK_INPUT_INT32(funcname, argname, num) CHECK_WRAP( \
+            if (!isint32(inputs[num])) { \
+                error(funcname ": argument " #num " (" argname ") must of type int32.", num); \
             } )
         #define CHECK_INPUT_INT64(funcname, argname, num) CHECK_WRAP( \
             if (!isint64(inputs[num])) { \
@@ -183,6 +194,33 @@ public:
                 mex_ang2pix(outputs, inputs);
                 break;
 
+            case id_map2alm_iter:
+                CHECK_NINOUT("map2alm_iter", 7, 1);
+                CHECK_INPUT_SCALAR("map2alm_iter", "nside", 1);
+                CHECK_INPUT_INT64("map2alm_iter", "nside", 1);
+                CHECK_INPUT_CHAR("map2alm_iter", "order", 2);
+                CHECK_INPUT_DOUBLE("map2alm_iter", "map", 3);
+                CHECK_INPUT_SCALAR("map2alm_iter", "lmax", 4);
+                CHECK_INPUT_INT32("map2alm_iter", "lmax", 4);
+                CHECK_INPUT_SCALAR("map2alm_iter", "mmax", 5);
+                CHECK_INPUT_INT32("map2alm_iter", "mmax", 5);
+                CHECK_INPUT_DOUBLE("map2alm_iter", "rwghts", 6);
+                CHECK_INPUT_SCALAR("map2alm_iter", "iter", 7);
+                CHECK_INPUT_INT32("map2alm_iter", "iter", 7);
+                mex_map2alm_iter(outputs, inputs);
+                break;
+
+            case id_alm2cl:
+                CHECK_NINOUT("alm2cl", 4, 1);
+                CHECK_INPUT_SCALAR("alm2cl", "lmax", 1);
+                CHECK_INPUT_INT32("alm2cl", "lmax", 1);
+                CHECK_INPUT_SCALAR("alm2cl", "mmax", 2);
+                CHECK_INPUT_INT32("alm2cl", "mmax", 2);
+                CHECK_INPUT_COMPLEX64("alm2cl", "alms1", 3);
+                CHECK_INPUT_COMPLEX64("alm2cl", "alms2", 4);
+                mex_alm2cl(outputs, inputs);
+                break;
+
             default:
                 error("Unhandled dispatch type %d", dispatch);
         }
@@ -204,6 +242,10 @@ private:
     DISPATCH_FN(vec2pix);
     DISPATCH_FN(zphi2pix);
     DISPATCH_FN(ang2pix);
+
+    DISPATCH_FN(map2alm_iter);
+
+    DISPATCH_FN(alm2cl);
 
     #undef DISPATCH_FN
 
@@ -250,6 +292,13 @@ buffer_ptr_t<T> buffer(A array) {
     return array_t.release();
 }
 
+// Extracts an explicitly-typed scalar from a Matlab array
+template <typename T, typename A>
+T scalar(A array) {
+    TypedArray<T> array_t = array;
+    return array_t[0];
+}
+
 // Turns a Matlab array into a healpix arr<T> object
 template <typename T>
 tuple<arr<T>, buffer_ptr_t<T>> array2arrbuf(Array& ml_array)
@@ -261,10 +310,11 @@ tuple<arr<T>, buffer_ptr_t<T>> array2arrbuf(Array& ml_array)
 }
 
 // Turns a Matlab array into a healpix map object.
-tuple<healmap, buffer_ptr_t<double>> array2mapbuf(Array& ml_map)
+tuple<healmap, buffer_ptr_t<double>>
+array2mapbuf(Array& ml_map, Healpix_Ordering_Scheme order)
 {
     auto [hpx, buf] = array2arrbuf<double>(ml_map);
-    auto map = healmap(hpx, RING);
+    auto map = healmap(hpx, order);
     return tuple{move(map), move(buf)};
 }
 
@@ -456,4 +506,52 @@ DISPATCH_FN(ang2pix) {
     }
 
     outputs[0] = factory.createArrayFromBuffer({npix}, move(ipix));
+}
+
+DISPATCH_FN(map2alm_iter) {
+    healpix base = nsideorder(inputs[1], inputs[2]);
+    auto [map, mapbuf] = array2mapbuf(inputs[3], base.Scheme());
+    auto lmax = scalar<int32_t>(inputs[4]);
+    auto mmax = scalar<int32_t>(inputs[5]);
+    auto iter = scalar<int32_t>(inputs[7]);
+    auto [rwghts, rwghtsbuf] = array2arrbuf<double>(inputs[6]);
+
+    auto hpx_alms = Alm<complex<double>>();
+    auto nalms = Alm_Base::Num_Alms(lmax, mmax);
+    auto buf_alms = factory.createBuffer<complex<double>>(nalms);
+    auto arr_alms = arr(buf_alms.get(), nalms);
+    hpx_alms.Set(arr_alms, lmax, mmax);
+
+    map2alm_iter(map, hpx_alms, iter, rwghts);
+
+    outputs[0] = factory.createArrayFromBuffer({nalms}, move(buf_alms));
+}
+
+DISPATCH_FN(alm2cl) {
+    auto lmax = scalar<int32_t>(inputs[1]);
+    auto mmax = scalar<int32_t>(inputs[2]);
+    auto [arr_alms1, almsbuf1] = array2arrbuf<complex<double>>(inputs[3]);
+    auto [arr_alms2, almsbuf2] = array2arrbuf<complex<double>>(inputs[4]);
+
+    auto alms1 = Alm<complex<double>>();
+    auto alms2 = Alm<complex<double>>();
+    alms1.Set(arr_alms1, lmax, mmax);
+    alms2.Set(arr_alms2, lmax, mmax);
+
+    auto powspec = factory.createBuffer<double>(lmax + 1);
+
+    // Essentially extract_crosspowspec from alm_powspec_tools.{h,cc}, but
+    // avoids PowSpec object which can't be given a pre-allocated buffer to
+    // make use of.
+    for (int ll = 0; ll <= lmax; ++ll) {
+        powspec[ll] = alms1(ll,0).real() * alms2(ll,0).real();
+        int endm = ll < mmax ? ll : mmax;
+        for (int mm = 0; mm <= endm; ++mm) {
+            powspec[ll] += 2 * (alms1(ll,mm).real() * alms2(ll,mm).real()
+                              + alms1(ll,mm).imag() * alms2(ll,mm).imag());
+        }
+        powspec[ll] /= (2*ll + 1);
+    }
+
+    outputs[0] = factory.createArrayFromBuffer({lmax+1}, move(powspec));
 }

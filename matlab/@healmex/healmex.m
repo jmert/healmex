@@ -1,5 +1,5 @@
 classdef healmex < matlab.mixin.CustomDisplay
-  properties (Constant, Access = private)
+  properties (Constant)
     id_heartbeat        = int64(-1)
     id_nest2ring        = int64(1)
     id_ring2nest        = int64(2)
@@ -9,6 +9,8 @@ classdef healmex < matlab.mixin.CustomDisplay
     id_vec2pix          = int64(14)
     id_zphi2pix         = int64(15)
     id_ang2pix          = int64(16)
+    id_map2alm_iter     = int64(51)
+    id_alm2cl           = int64(61)
   end
   methods (Static)
     ipix = nest2ring(nside, ipix)
@@ -18,8 +20,12 @@ classdef healmex < matlab.mixin.CustomDisplay
     [z, phi] = pix2zphi(nside, order, ipix)
     [theta, phi] = pix2ang(nside, order, ipix)
     ipix = vec2pix(nside, order, vec)
-    ipix = zphipix(nside, order, z, phi)
+    ipix = zphi2pix(nside, order, z, phi)
     ipix = ang2pix(nside, order, theta, phi)
+
+    alms = map2alm_iter(nside, order, map, lmax, mmax, rwghts, iter)
+
+    cl = alm2cl(alms1, alms2, lmax, mmax)
   end
 
   methods (Access = protected)
