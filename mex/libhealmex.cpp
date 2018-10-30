@@ -29,8 +29,7 @@ inline bool iscomplex64(Array& a) { return a.getType() == ArrayType::COMPLEX_DOU
 
 inline bool isscalar(Array& a) { return a.getNumberOfElements() == 1; }
 
-template <typename T, typename A> buffer_ptr_t<T> buffer(A array);
-template <typename T, typename A> T scalar(const A array);
+template <typename T, typename A> buffer_ptr_t<T> buffer(A& array);
 
 /*
  * MEX entry point
@@ -66,7 +65,7 @@ public:
         //    layout
         auto ml_arr = factory.createArray({2, 1}, {
                 complex<double>{1, 2}, complex<double>{-3, -4}});
-        auto ml_buf = buffer<complex<double>>(move(ml_arr));
+        auto ml_buf = buffer<complex<double>>(ml_arr);
         double* packed = reinterpret_cast<double*>(ml_buf.get());
         if (packed[0] != 1 || packed[1] != 2 || packed[2] != -3 || packed[3] != -4) {
             error("Unexpected complex format!");
@@ -341,9 +340,16 @@ private:
 
 // Extracts an explicitly-typed memory buffer from a Matlab array
 template <typename T, typename A>
-buffer_ptr_t<T> buffer(A array) {
+buffer_ptr_t<T> buffer(A& array) {
     TypedArray<T> array_t = array;
     return array_t.release();
+}
+
+template <typename T, typename A>
+tuple<buffer_ptr_t<T>, size_t> bufferlen(A& array) {
+    TypedArray<T> array_t = array;
+    size_t len = array.getNumberOfElements();
+    return tuple{array_t.release(), len};
 }
 
 // Extracts an explicitly-typed scalar from a Matlab array
@@ -351,51 +357,6 @@ template <typename T, typename A>
 T scalar(A array) {
     TypedArray<T> array_t = array;
     return array_t[0];
-}
-
-// Turns a Matlab array into a healpix arr<T> object
-template <typename T>
-tuple<arr<T>, buffer_ptr_t<T>> array2arrbuf(Array& ml_array)
-{
-    auto nel = ml_array.getNumberOfElements();
-    auto buf = buffer<T>(ml_array);
-    auto vec = arr<T>(buf.get(), nel);
-    return tuple{vec, move(buf)};
-}
-
-// Turns a Matlab array into a healpix map object.
-tuple<healmap, buffer_ptr_t<double>>
-array2mapbuf(Array& ml_map, Healpix_Ordering_Scheme order)
-{
-    auto [hpx, buf] = array2arrbuf<double>(ml_map);
-    auto map = healmap(hpx, order);
-    return tuple{map, move(buf)};
-}
-// Turns a Matlab buffer into a healpix map object.
-healmap buf2map(buffer_ptr_t<double>& buf, size_t nsize, Healpix_Ordering_Scheme order)
-{
-    auto hpx = arr<double>(buf.get(), nsize);
-    auto map = healmap();
-    map.Set(hpx, order);
-    return map;
-}
-
-// Turns a Matlab array into a healpix alm object.
-tuple<healalm, buffer_ptr_t<complex64>>
-array2almbuf(Array& ml_alm, int lmax, int mmax)
-{
-    auto [hpx, buf] = array2arrbuf<complex64>(ml_alm);
-    auto alm = healalm();
-    alm.Set(hpx, lmax, mmax);
-    return tuple{alm, move(buf)};
-}
-// Turns a Matlab buffer into a healpix alm object.
-healalm buf2alm(buffer_ptr_t<complex64>& buf, size_t nsize, int lmax, int mmax)
-{
-    auto hpx = arr<complex64>(buf.get(), nsize);
-    auto alm = healalm();
-    alm.Set(hpx, lmax, mmax);
-    return alm;
 }
 
 // Turns a Matlab arrays giving the Nside into a HEALPix object, assuming
@@ -590,15 +551,27 @@ DISPATCH_FN(ang2pix) {
 
 DISPATCH_FN(map2alm_iter) {
     healpix base = nsideorder(inputs[1], inputs[2]);
-    auto [map, mapbuf] = array2mapbuf(inputs[3], base.Scheme());
+    auto [buf_map, len_map] = bufferlen<double>(inputs[3]);
     auto lmax = scalar<int32_t>(inputs[4]);
     auto mmax = scalar<int32_t>(inputs[5]);
+    auto [buf_wght, len_wght] = bufferlen<double>(inputs[6]);
     auto iter = scalar<int32_t>(inputs[7]);
-    auto [rwghts, rwghtsbuf] = array2arrbuf<double>(inputs[6]);
+
+    auto map = healmap();
+    {
+        arr<double> tmp(buf_map.get(), len_map);
+        map.Set(tmp, base.Scheme());
+    }
+
+    arr<double> rwghts(buf_wght.get(), len_wght);
 
     auto nalms = Alm_Base::Num_Alms(lmax, mmax);
+    auto alms = healalm();
     auto buf_alms = factory.createBuffer<complex64>(nalms);
-    auto alms = buf2alm(buf_alms, nalms, lmax, mmax);
+    {
+        arr<complex64> tmp(buf_alms.get(), nalms);
+        alms.Set(tmp, lmax, mmax);
+    }
 
     map2alm_iter(map, alms, iter, rwghts);
 
@@ -607,21 +580,52 @@ DISPATCH_FN(map2alm_iter) {
 
 DISPATCH_FN(map2alm_pol_iter) {
     healpix base = nsideorder(inputs[1], inputs[2]);
-    auto [mapT, mapTbuf] = array2mapbuf(inputs[3], base.Scheme());
-    auto [mapQ, mapQbuf] = array2mapbuf(inputs[4], base.Scheme());
-    auto [mapU, mapUbuf] = array2mapbuf(inputs[5], base.Scheme());
+    auto [buf_mapT, len_mapT] = bufferlen<double>(inputs[3]);
+    auto [buf_mapQ, len_mapQ] = bufferlen<double>(inputs[4]);
+    auto [buf_mapU, len_mapU] = bufferlen<double>(inputs[5]);
     auto lmax = scalar<int32_t>(inputs[6]);
     auto mmax = scalar<int32_t>(inputs[7]);
+    auto [buf_wght, len_wght] = bufferlen<double>(inputs[8]);
     auto iter = scalar<int32_t>(inputs[9]);
-    auto [rwghts, rwghtsbuf] = array2arrbuf<double>(inputs[8]);
+
+    auto mapT = healmap();
+    auto mapQ = healmap();
+    auto mapU = healmap();
+    {
+        arr<double> tmp(buf_mapT.get(), len_mapT);
+        mapT.Set(tmp, base.Scheme());
+    }
+    {
+        arr<double> tmp(buf_mapQ.get(), len_mapQ);
+        mapQ.Set(tmp, base.Scheme());
+    }
+    {
+        arr<double> tmp(buf_mapU.get(), len_mapU);
+        mapU.Set(tmp, base.Scheme());
+    }
+
+    arr<double> rwghts(buf_wght.get(), len_wght);
 
     auto nalms = Alm_Base::Num_Alms(lmax, mmax);
+    auto almsT = healalm();
+    auto almsG = healalm();
+    auto almsC = healalm();
+
     auto buf_almsT = factory.createBuffer<complex64>(nalms);
     auto buf_almsG = factory.createBuffer<complex64>(nalms);
     auto buf_almsC = factory.createBuffer<complex64>(nalms);
-    auto almsT = buf2alm(buf_almsT, nalms, lmax, mmax);
-    auto almsG = buf2alm(buf_almsG, nalms, lmax, mmax);
-    auto almsC = buf2alm(buf_almsC, nalms, lmax, mmax);
+    {
+        arr<complex64> tmp(buf_almsT.get(), nalms);
+        almsT.Set(tmp, lmax, mmax);
+    }
+    {
+        arr<complex64> tmp(buf_almsG.get(), nalms);
+        almsG.Set(tmp, lmax, mmax);
+    }
+    {
+        arr<complex64> tmp(buf_almsC.get(), nalms);
+        almsC.Set(tmp, lmax, mmax);
+    }
 
     map2alm_pol_iter(mapT, mapQ, mapU,
             almsT, almsG, almsC, iter, rwghts);
@@ -634,12 +638,22 @@ DISPATCH_FN(map2alm_pol_iter) {
 DISPATCH_FN(alm2map) {
     auto lmax = scalar<int32_t>(inputs[1]);
     auto mmax = scalar<int32_t>(inputs[2]);
-    auto [alms, almsbuf] = array2almbuf(inputs[3], lmax, mmax);
+    auto [buf_alms, len_alms] = bufferlen<complex64>(inputs[3]);
     healpix base = nsideorder(inputs[4], inputs[5]);
 
+    auto alms = healalm();
+    {
+        arr<complex64> tmp(buf_alms.get(), len_alms);
+        alms.Set(tmp, lmax, mmax);
+    }
+
     auto npix = 12 * base.Nside() * base.Nside();
+    auto map = healmap();
     auto buf_map = factory.createBuffer<double>(npix);
-    auto map = buf2map(buf_map, npix, base.Scheme());
+    {
+        arr<double> tmp(buf_map.get(), npix);
+        map.Set(tmp, base.Scheme());
+    }
 
     alm2map(alms, map);
 
@@ -649,18 +663,46 @@ DISPATCH_FN(alm2map) {
 DISPATCH_FN(alm2map_pol) {
     auto lmax = scalar<int32_t>(inputs[1]);
     auto mmax = scalar<int32_t>(inputs[2]);
-    auto [almsT, buf_almsT] = array2almbuf(inputs[3], lmax, mmax);
-    auto [almsG, buf_almsG] = array2almbuf(inputs[4], lmax, mmax);
-    auto [almsC, buf_almsC] = array2almbuf(inputs[5], lmax, mmax);
+    auto [buf_almsT, len_almsT] = bufferlen<complex64>(inputs[3]);
+    auto [buf_almsG, len_almsG] = bufferlen<complex64>(inputs[4]);
+    auto [buf_almsC, len_almsC] = bufferlen<complex64>(inputs[5]);
     healpix base = nsideorder(inputs[6], inputs[7]);
 
+    auto almsT = healalm();
+    auto almsG = healalm();
+    auto almsC = healalm();
+    {
+        arr<complex64> tmp(buf_almsT.get(), len_almsT);
+        almsT.Set(tmp, lmax, mmax);
+    }
+    {
+        arr<complex64> tmp(buf_almsG.get(), len_almsG);
+        almsG.Set(tmp, lmax, mmax);
+    }
+    {
+        arr<complex64> tmp(buf_almsC.get(), len_almsC);
+        almsC.Set(tmp, lmax, mmax);
+    }
+
     auto npix = 12 * base.Nside() * base.Nside();
+    auto mapT = healmap();
+    auto mapQ = healmap();
+    auto mapU = healmap();
     auto buf_mapT = factory.createBuffer<double>(npix);
     auto buf_mapQ = factory.createBuffer<double>(npix);
     auto buf_mapU = factory.createBuffer<double>(npix);
-    auto mapT = buf2map(buf_mapT, npix, base.Scheme());
-    auto mapQ = buf2map(buf_mapQ, npix, base.Scheme());
-    auto mapU = buf2map(buf_mapU, npix, base.Scheme());
+    {
+        arr<double> tmp(buf_mapT.get(), npix);
+        mapT.Set(tmp, base.Scheme());
+    }
+    {
+        arr<double> tmp(buf_mapQ.get(), npix);
+        mapQ.Set(tmp, base.Scheme());
+    }
+    {
+        arr<double> tmp(buf_mapU.get(), npix);
+        mapU.Set(tmp, base.Scheme());
+    }
 
     alm2map_pol(almsT, almsG, almsC, mapT, mapQ, mapU);
 
@@ -672,8 +714,19 @@ DISPATCH_FN(alm2map_pol) {
 DISPATCH_FN(alm2cl) {
     auto lmax = scalar<int32_t>(inputs[1]);
     auto mmax = scalar<int32_t>(inputs[2]);
-    auto [alms1, almsbuf1] = array2almbuf(inputs[3], lmax, mmax);
-    auto [alms2, almsbuf2] = array2almbuf(inputs[4], lmax, mmax);
+    auto [buf_alms1, len_alms1] = bufferlen<complex64>(inputs[3]);
+    auto [buf_alms2, len_alms2] = bufferlen<complex64>(inputs[3]);
+
+    auto alms1 = healalm();
+    auto alms2 = healalm();
+    {
+        arr<complex64> tmp(buf_alms1.get(), len_alms1);
+        alms1.Set(tmp, lmax, mmax);
+    }
+    {
+        arr<complex64> tmp(buf_alms2.get(), len_alms2);
+        alms2.Set(tmp, lmax, mmax);
+    }
 
     auto powspec = factory.createBuffer<double>(lmax + 1);
 
