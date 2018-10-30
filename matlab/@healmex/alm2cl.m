@@ -29,7 +29,8 @@ function cl = alm2cl(alms1, alms2, lmax, mmax)
   end
 
   cl = libhealmex(healmex.id_alm2cl, ...
-      int32(lmax), int32(mmax), double(alms1), double(alms2));
+      int32(lmax), int32(mmax), ...
+      complex(double(alms1)), complex(double(alms2)));
 end
 
 % Translated from healpy's _sphtools.pyx source

@@ -9,5 +9,6 @@ function map = alm2map(lmax, mmax, alms, nside, order)
   end
 
   map = libhealmex(healmex.id_alm2map, ...
-      int32(lmax), int32(mmax), double(alms), int64(nside), char(order));
+      int32(lmax), int32(mmax), complex(double(alms)), ...
+      int64(nside), char(order));
 end
