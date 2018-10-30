@@ -102,4 +102,6 @@ endif()
 
 # Installation instructions for MEX + scripts
 install(DIRECTORY ${CMAKE_BINARY_DIR}/matlab/
-    DESTINATION ${CMAKE_INSTALL_PREFIX})
+    DESTINATION ${CMAKE_INSTALL_PREFIX}
+    FILES_MATCHING PATTERN "*.m" PATTERN "*.mex*"
+    )
