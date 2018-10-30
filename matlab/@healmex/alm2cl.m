@@ -1,8 +1,10 @@
 function cl = alm2cl(alms1, alms2, lmax, mmax)
-% alms = map2alm_iter(alms1, alms2, lmax, mmax)
+% cl = alm2cl(alms1, alms2, lmax, mmax)
 %
-% Computes the spherical harmonic transform of map and returns the harmonic
-% coefficients alms.
+% Computes the angular power [cross-]spectrum from the set of harmonic
+% coefficients alms1 and alms2. If alms2 is empty, then alms1 is used to
+% produce the auto-spectrum. lmax and mmax are optional in cases where the
+% lmax and mmax can be inferred from the length of the alms vector.
 
   if ~exist('lmax', 'var')
     lmax = [];
