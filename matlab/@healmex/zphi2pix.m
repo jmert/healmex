@@ -10,7 +10,7 @@ function ipix = zphi2pix(nside, order, z, phi)
     order = 'RING';
   end
 
-  ipix = libhealmex(healmex.id_zphi2pix, ...
+  ipix = libhealmex(int64(15), ...
       int64(nside), char(order), double(z), double(phi));
 end
 

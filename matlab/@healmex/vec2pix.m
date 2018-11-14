@@ -10,7 +10,7 @@ function ipix = vec2pix(nside, order, vec)
     order = 'RING';
   end
 
-  ipix = libhealmex(healmex.id_vec2pix, ...
+  ipix = libhealmex(int64(14), ...
       int64(nside), char(order), double(vec));
 end
 

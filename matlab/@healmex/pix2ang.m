@@ -10,7 +10,7 @@ function [theta,phi] = pix2ang(nside, order, ipix)
     order = 'RING';
   end
 
-  [theta, phi] = libhealmex(healmex.id_pix2ang, ...
+  [theta, phi] = libhealmex(int64(13), ...
       int64(nside), char(order), int64(ipix));
 end
 

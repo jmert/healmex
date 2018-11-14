@@ -5,7 +5,7 @@ function ipix = nest2ring(nside, ipix)
 % an Nside = nside HEALPix map.
 %
 
-  ipix = libhealmex(healmex.id_nest2ring, ...
+  ipix = libhealmex(int64(1), ...
       int64(nside), int64(ipix));
 end
 

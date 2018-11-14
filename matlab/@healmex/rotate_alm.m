@@ -38,6 +38,6 @@ function alms=rotate_alm(transform, alms, lmax, mmax)
     error('Unknown coordinate transform: %d', transform)
   end
 
-  alms = libhealmex(healmex.id_rotate_alm, ...
+  alms = libhealmex(int64(65), ...
       int32(transform), int32(lmax), int32(mmax), complex(double(alms)));
 end

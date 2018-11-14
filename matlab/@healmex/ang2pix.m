@@ -10,7 +10,7 @@ function ipix = ang2pix(nside, order, theta, phi)
     order = 'RING';
   end
 
-  ipix = libhealmex(healmex.id_ang2pix, ...
+  ipix = libhealmex(int64(16), ...
       int64(nside), char(order), double(theta), double(phi));
 end
 
