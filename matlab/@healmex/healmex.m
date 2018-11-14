@@ -14,6 +14,8 @@ classdef healmex < matlab.mixin.CustomDisplay
     id_alm2map          = int64(55)
     id_alm2map_pol      = int64(56)
     id_alm2cl           = int64(61)
+    id_rotate_alm       = int64(65)
+    id_rotate_alm_pol   = int64(66)
   end
   methods (Static)
     ipix = nest2ring(nside, ipix)
@@ -31,7 +33,11 @@ classdef healmex < matlab.mixin.CustomDisplay
     map = alm2map(lmax, mmax, alms, nside, order)
     [mapT,mapQ,mapU] = alm2map_pol(lmax, mmax, almsT, almsG, almsC, nside, order)
 
+    [lmax, mmax] = alm_getlmmax(alms, lmax, mmax);
+
     cl = alm2cl(alms1, alms2, lmax, mmax)
+    alms = rotate_alm(transform, alms, lmax, mmax);
+    [almsT,almsG,almsC] = rotate_alm_pol(transform, almsT, almsG, almsC, lmax, mmax);
   end
 
   methods (Access = protected)

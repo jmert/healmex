@@ -8,7 +8,9 @@
 #include <healpix_map.h>
 #include <alm.h>
 #include <alm_healpix_tools.h>
+#include <alm_powspec_tools.h>
 #include <powspec.h>
+#include <rotmatrix.h>
 
 using namespace std;
 using namespace matlab::data;
@@ -50,6 +52,8 @@ enum libhealpix_mex_calls {
     id_alm2map          = 55,
     id_alm2map_pol      = 56,
     id_alm2cl           = 61,
+    id_rotate_alm       = 65,
+    id_rotate_alm_pol   = 66
 };
 
 class MexFunction : public matlab::mex::Function {
@@ -271,6 +275,32 @@ public:
                 mex_alm2cl(outputs, inputs);
                 break;
 
+            case id_rotate_alm:
+                CHECK_NINOUT("rotate_alm", 4, 1);
+                CHECK_INPUT_SCALAR("rotate_alm", "itransform", 1);
+                CHECK_INPUT_INT32("rotate_alm", "itransform", 1);
+                CHECK_INPUT_SCALAR("alm2cl", "lmax", 2);
+                CHECK_INPUT_INT32("alm2cl", "lmax", 2);
+                CHECK_INPUT_SCALAR("alm2cl", "mmax", 3);
+                CHECK_INPUT_INT32("alm2cl", "mmax", 3);
+                CHECK_INPUT_COMPLEX64("rotate_alm", "alms", 4);
+                mex_rotate_alm(outputs, inputs);
+                break;
+
+            case id_rotate_alm_pol:
+                CHECK_NINOUT("rotate_alm_pol", 6, 3);
+                CHECK_INPUT_SCALAR("rotate_alm_pol", "itransform", 1);
+                CHECK_INPUT_INT32("rotate_alm_pol", "itransform", 1);
+                CHECK_INPUT_SCALAR("alm2cl", "lmax", 2);
+                CHECK_INPUT_INT32("alm2cl", "lmax", 2);
+                CHECK_INPUT_SCALAR("alm2cl", "mmax", 3);
+                CHECK_INPUT_INT32("alm2cl", "mmax", 3);
+                CHECK_INPUT_COMPLEX64("rotate_alm_pol", "almsT", 4);
+                CHECK_INPUT_COMPLEX64("rotate_alm_pol", "almsG", 5);
+                CHECK_INPUT_COMPLEX64("rotate_alm_pol", "almsC", 6);
+                mex_rotate_alm_pol(outputs, inputs);
+                break;
+
             default:
                 error("Unhandled dispatch type %d", dispatch);
         }
@@ -299,6 +329,8 @@ private:
     DISPATCH_FN(alm2map_pol);
 
     DISPATCH_FN(alm2cl);
+    DISPATCH_FN(rotate_alm);
+    DISPATCH_FN(rotate_alm_pol);
 
     #undef DISPATCH_FN
 
@@ -744,4 +776,82 @@ DISPATCH_FN(alm2cl) {
     }
 
     outputs[0] = factory.createArrayFromBuffer({lmax+1}, move(powspec));
+}
+
+// Forward declaration of HEALPix's Trafo object. Header isn't installed, so
+// declare directly. Also cheat and declare a static private member as public.
+enum coordsys { Ecliptic, Equatorial, Galactic };
+class Trafo {
+public:
+    static void coordsys2matrix (double iepoch, double oepoch,
+                                 coordsys isys, coordsys osys,
+                                 rotmatrix &matrix);
+};
+inline void coordsys2matrix (int num, rotmatrix& rm) {
+    #define c2m Trafo::coordsys2matrix
+    switch (num) {
+        case  1: c2m(2000, 2000, Equatorial, Galactic,   rm); break;
+        case  2: c2m(2000, 2000, Galactic,   Equatorial, rm); break;
+        case  3: c2m(2000, 2000, Equatorial, Ecliptic,   rm); break;
+        case  4: c2m(2000, 2000, Ecliptic,   Equatorial, rm); break;
+        case  5: c2m(2000, 2000, Ecliptic,   Galactic,   rm); break;
+        case  6: c2m(2000, 2000, Galactic,   Ecliptic,   rm); break;
+        case  7: c2m(1950, 1950, Equatorial, Galactic,   rm); break;
+        case  8: c2m(1950, 1950, Galactic,   Equatorial, rm); break;
+        case  9: c2m(1950, 1950, Equatorial, Ecliptic,   rm); break;
+        case 10: c2m(1950, 1950, Ecliptic,   Equatorial, rm); break;
+        case 11: c2m(1950, 1950, Ecliptic,   Galactic,   rm); break;
+        case 12: c2m(1950, 1950, Galactic,   Ecliptic,   rm); break;
+        default: c2m(2000, 2000, Galactic,   Galactic,   rm); break;
+    }
+    #undef c2m
+}
+
+DISPATCH_FN(rotate_alm) {
+    auto itransform = scalar<int32_t>(inputs[1]);
+    auto lmax = scalar<int32_t>(inputs[2]);
+    auto mmax = scalar<int32_t>(inputs[3]);
+    auto [buf_alms, len_alms] = bufferlen<complex64>(inputs[4]);
+    auto alms = healalm();
+    {
+        arr<complex64> tmp(buf_alms.get(), len_alms);
+        alms.Set(tmp, lmax, mmax);
+    }
+
+    rotmatrix rm;
+    coordsys2matrix(itransform, rm);
+    rotate_alm(alms, rm);
+    outputs[0] = factory.createArrayFromBuffer({len_alms}, move(buf_alms));
+}
+DISPATCH_FN(rotate_alm_pol) {
+    auto itransform = scalar<int32_t>(inputs[1]);
+    auto lmax = scalar<int32_t>(inputs[2]);
+    auto mmax = scalar<int32_t>(inputs[3]);
+    auto [buf_almsT, len_almsT] = bufferlen<complex64>(inputs[4]);
+    auto [buf_almsG, len_almsG] = bufferlen<complex64>(inputs[5]);
+    auto [buf_almsC, len_almsC] = bufferlen<complex64>(inputs[6]);
+
+    auto almsT = healalm();
+    auto almsG = healalm();
+    auto almsC = healalm();
+    {
+        arr<complex64> tmp(buf_almsT.get(), len_almsT);
+        almsT.Set(tmp, lmax, mmax);
+    }
+    {
+        arr<complex64> tmp(buf_almsG.get(), len_almsG);
+        almsG.Set(tmp, lmax, mmax);
+    }
+    {
+        arr<complex64> tmp(buf_almsC.get(), len_almsC);
+        almsC.Set(tmp, lmax, mmax);
+    }
+
+    rotmatrix rm;
+    coordsys2matrix(itransform, rm);
+    rotate_alm(almsT, almsG, almsC, rm);
+
+    outputs[0] = factory.createArrayFromBuffer({len_almsT}, move(buf_almsT));
+    outputs[1] = factory.createArrayFromBuffer({len_almsG}, move(buf_almsG));
+    outputs[2] = factory.createArrayFromBuffer({len_almsC}, move(buf_almsC));
 }
