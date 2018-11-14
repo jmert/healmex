@@ -95,16 +95,30 @@ add_dependencies(healmex healpix)
 
 if (ASCLASS)
     set(PKGBASE "")
+    set(CLASSPREFIX "healmex.")
 else()
     set(PKGBASE "@healmex/")
+    set(CLASSPREFIX "")
 endif()
 
+file(GLOB MFILES  "${CMAKE_SOURCE_DIR}/matlab/@healmex/*.m")
+file(GLOB INFILES "${CMAKE_SOURCE_DIR}/matlab/@healmex/*.m.in")
+
 # Copy Matlab scripts into the build directory.
+foreach(INFILE ${INFILES})
+    get_filename_component(FILENAME ${INFILE} NAME_WE)
+    set(FILENAME "${CMAKE_BINARY_DIR}/matlab/@healmex/${FILENAME}.m")
+    message(STATUS "Configuring: ${FILENAME}")
+    configure_file(${INFILE} ${FILENAME} @ONLY)
+endforeach()
 if (NOT (${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR}))
-    add_custom_command(TARGET healmex POST_BUILD
-        COMMENT "Copying Matlab sources to ${CMAKE_BINARY_DIR}"
-        COMMAND ${CMAKE_COMMAND} -E copy_directory
-            ${CMAKE_SOURCE_DIR}/matlab/ ${CMAKE_BINARY_DIR}/matlab)
+    foreach(MFILE ${MFILES})
+        get_filename_component(FILENAME ${MFILE} NAME)
+        set(FILENAME "${CMAKE_BINARY_DIR}/matlab/@healmex/${FILENAME}")
+        message(STATUS "Staging: ${FILENAME}")
+        execute_process(COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            ${MFILE} ${FILENAME})
+    endforeach()
 endif()
 
 # Installation instructions for MEX + scripts

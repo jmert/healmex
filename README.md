@@ -53,10 +53,21 @@ runtime path:
 ```
 Adding a similar line to your `startup.m` file may be useful.
 
+### Configuration Options
+
+The following are available options which can be set during configuration.
+Each should be set in either the interact `ccmake` prompt or via a CMake
+variable definition with `cmake -DVAR=VALUE`.
+
+* **`ASCLASS`**: Defaults to `ON`. If `ON`, the package is installed as a
+  Matlab class. Otherwise if `OFF`, the package is installed as a classless
+  set of functions.
+
 ## Usage
 
-The bindings in Matlab are presented as static methods of the `healmex`
-class. A list of all methods can be obtained with `disp(healmex)`:
+If installed as a Matlab class, the bindings in Matlab are presented as static
+methods of the `healmex` class. A list of all methods can be obtained with
+`disp(healmex)`:
 ```matlab
 >> disp(healmex)
 healmex with methods:
@@ -87,6 +98,8 @@ ph =
     0.7854
 
 ```
+If installed in the classless form, the `healmex.` prefix from calls should
+be removed.
 
 [healpix]: https://healpix.sourceforge.io/index.php
 [interleaved]: https://www.mathworks.com/help/matlab/matlab_external/matlab-support-for-interleaved-complex.html
