@@ -5,7 +5,8 @@
 cmake_minimum_required(VERSION 3.9.0)
 cmake_policy(SET CMP0017 NEW) # https://cmake.org/cmake/help/v3.11/policy/CMP0017.html
 
-project(healmat CXX)
+project(healmex CXX)
+option(ASCLASS "install healmex as a Matlab class" ON)
 
 # cmake/FindMatlab.cmake can be deleted and this line removed once
 # cmake_minimum_required bumped beyond 3.13.? where FindMatlab.cmake
@@ -92,6 +93,12 @@ ExternalProject_Add(healmex
 )
 add_dependencies(healmex healpix)
 
+if (ASCLASS)
+    set(PKGBASE "")
+else()
+    set(PKGBASE "@healmex/")
+endif()
+
 # Copy Matlab scripts into the build directory.
 if (NOT (${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR}))
     add_custom_command(TARGET healmex POST_BUILD
@@ -103,5 +110,11 @@ endif()
 # Installation instructions for MEX + scripts
 install(DIRECTORY ${CMAKE_BINARY_DIR}/matlab/
     DESTINATION ${CMAKE_INSTALL_PREFIX}
-    FILES_MATCHING PATTERN "*.m" PATTERN "*.mex*"
+    FILES_MATCHING
+    PATTERN "@healmex" EXCLUDE
+    PATTERN "*.mex*"
+    )
+install(DIRECTORY ${CMAKE_BINARY_DIR}/matlab/${PKGBASE}
+    DESTINATION ${CMAKE_INSTALL_PREFIX}
+    FILES_MATCHING PATTERN "*.m"
     )
