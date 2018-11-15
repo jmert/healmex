@@ -1,0 +1,53 @@
+function map = alm2map(alms, nside, order, lmax, mmax)
+% map = alm2map(alms, nside, order, lmax, mmax)
+%
+% Synthesizes map(s) from the provided alms at Nside = nside and for the
+% pixelization ordering order.
+%
+% INPUTS
+%   alms    The spherical harmonic coefficients of map. If map is Nx1, then
+%           alms is an Mx1 vector of scalar (non-spin) coefficients (i.e.
+%           temperature). If map is Nx3, the column 1 is the scalar (non-spin)
+%           coefficients, and columsn 2 and 3 are the gradient and curl,
+%           respectively, spin-2 transforms.
+%
+%   nside   HEALPix Nside of output map to synthesize.
+%
+%   order   HEALPix map pixelization order, either 'RING' or 'NESTED'.
+%           Defaults to 'RING'.
+%
+%   lmax    The maximum degree harmonic coefficient to compute. Optional if
+%           inferrable by alm_getlmmax().
+%
+%   mmax    The maximum order harmonic coefficient to compute. Optional if
+%           inferrable by alm_getlmmax()l
+%
+% OUTPUTS
+%   map     An Nx1 or Nx3 matrix of map pixel values. Column 1 is assumed to
+%           be the intensity map, and columns 2 and 3 are assumed to be the
+%           Stokes Q and U fields, respectively.
+%
+% EXAMPLE
+
+  if ~exist('order', 'var') || isempty(order)
+    order = 'RING';
+  end
+  if ~exist('lmax', 'var')
+    lmax = [];
+  end
+  if ~exist('mmax', 'var')
+    mmax = [];
+  end
+
+  [lmax, mmax] = @CLASSPREFIX@alm_getlmmax(alms, lmax, mmax);
+
+  if size(alms, 2) == 1
+    map = @CLASSPREFIX@hpx_alm2map(lmax, mmax, alms, nside, order);
+  elseif size(alms, 2) == 3
+    [map(:,1),map(:,2),map(:,3)] = @CLASSPREFIX@hpx_alm2map_pol(...
+        lmax, mmax, alms(:,1), alms(:,2), alms(:,3), nside, order);
+  else
+    error('alms: Expected size 1 or 3 in second dimension, got %d', ...
+        size(alms, 2));
+  end
+end

@@ -24,24 +24,8 @@ function [almsT,almsG,almsC]=rotate_alm_pol(transform, almsT, almsG, almsC, lmax
 %   almsT       A vector of spherical harmonic coefficients.
 %   almsG       A vector of spherical harmonic coefficients.
 %   almsC       A vector of spherical harmonic coefficients.
-%   lmax        Maximum degree of spherical harmonics. Optional if inferrable
-%               by alm_getlmmax().
-%   mmax        Maximum order of spherical harmonics. Optional if inferrable
-%               by alm_getlmmax().
-
-  if ~exist('lmax', 'var')
-    lmax = [];
-  end
-  if ~exist('mmax', 'var')
-    mmax = [];
-  end
-  [lmax, mmax] = @CLASSPREFIX@alm_getlmmax(almsT, lmax, mmax);
-  if numel(almsT) ~= numel(almsG)
-    error('Mismatched sizes in almsT and almsG');
-  end
-  if numel(almsT) ~= numel(almsC)
-    error('Mismatched sizes in almsT and almsC');
-  end
+%   lmax        Maximum degree of spherical harmonics.
+%   mmax        Maximum order of spherical harmonics.
 
   [almsT,almsG,almsC] = libhealmex(int64(66), ...
       int32(transform), int32(lmax), int32(mmax), ...

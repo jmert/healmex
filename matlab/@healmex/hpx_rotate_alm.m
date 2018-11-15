@@ -21,22 +21,8 @@ function alms=rotate_alm(transform, alms, lmax, mmax)
 %      12 = Galactic   (1950) -> Ecliptic   (1950)
 %
 %   alms        A vector of spherical harmonic coefficients.
-%   lmax        Maximum degree of spherical harmonics. Optional if inferrable
-%               by alm_getlmmax().
-%   mmax        Maximum order of spherical harmonics. Optional if inferrable
-%               by alm_getlmmax().
-
-  if ~exist('lmax', 'var')
-    lmax = [];
-  end
-  if ~exist('mmax', 'var')
-    mmax = [];
-  end
-  [lmax, mmax] = @CLASSPREFIX@alm_getlmmax(alms, lmax, mmax);
-
-  if transform < 1 || transform > 12
-    error('Unknown coordinate transform: %d', transform)
-  end
+%   lmax        Maximum degree of spherical harmonics.
+%   mmax        Maximum order of spherical harmonics.
 
   alms = libhealmex(int64(65), ...
       int32(transform), int32(lmax), int32(mmax), complex(double(alms)));
