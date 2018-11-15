@@ -52,6 +52,7 @@ enum libhealpix_mex_calls {
     id_alm2map          = 55,
     id_alm2map_pol      = 56,
     id_alm2cl           = 61,
+    id_almxfl           = 62,
     id_rotate_alm       = 65,
     id_rotate_alm_pol   = 66
 };
@@ -275,6 +276,17 @@ public:
                 mex_alm2cl(outputs, inputs);
                 break;
 
+            case id_almxfl:
+                CHECK_NINOUT("almxfl", 4, 1);
+                CHECK_INPUT_SCALAR("almxfl", "lmax", 1);
+                CHECK_INPUT_INT32("almxfl", "lmax", 1);
+                CHECK_INPUT_SCALAR("almxfl", "mmax", 2);
+                CHECK_INPUT_INT32("almxfl", "mmax", 2);
+                CHECK_INPUT_COMPLEX64("almxfl", "alms", 3);
+                CHECK_INPUT_COMPLEX64("almxfl", "fl", 4);
+                mex_almxfl(outputs, inputs);
+                break;
+
             case id_rotate_alm:
                 CHECK_NINOUT("rotate_alm", 4, 1);
                 CHECK_INPUT_SCALAR("rotate_alm", "itransform", 1);
@@ -329,6 +341,7 @@ private:
     DISPATCH_FN(alm2map_pol);
 
     DISPATCH_FN(alm2cl);
+    DISPATCH_FN(almxfl);
     DISPATCH_FN(rotate_alm);
     DISPATCH_FN(rotate_alm_pol);
 
@@ -747,7 +760,7 @@ DISPATCH_FN(alm2cl) {
     auto lmax = scalar<int32_t>(inputs[1]);
     auto mmax = scalar<int32_t>(inputs[2]);
     auto [buf_alms1, len_alms1] = bufferlen<complex64>(inputs[3]);
-    auto [buf_alms2, len_alms2] = bufferlen<complex64>(inputs[3]);
+    auto [buf_alms2, len_alms2] = bufferlen<complex64>(inputs[4]);
 
     auto alms1 = healalm();
     auto alms2 = healalm();
@@ -776,6 +789,24 @@ DISPATCH_FN(alm2cl) {
     }
 
     outputs[0] = factory.createArrayFromBuffer({lmax+1}, move(powspec));
+}
+
+DISPATCH_FN(almxfl) {
+    auto lmax = scalar<int32_t>(inputs[1]);
+    auto mmax = scalar<int32_t>(inputs[2]);
+    auto [buf_alms, len_alms] = bufferlen<complex64>(inputs[3]);
+    auto [buf_fl,   len_fl]   = bufferlen<complex64>(inputs[4]);
+
+    size_t ii = 0;
+    for (size_t mm = 0; mm <= mmax; ++mm) {
+        for (size_t ll = mm; ll <= lmax; ++ll) {
+            complex64 fl = ll < len_fl ? buf_fl[ll] : 0.0;
+            buf_alms[ii] *= fl;
+            ++ii;
+        }
+    }
+
+    outputs[0] = factory.createArrayFromBuffer({len_alms}, move(buf_alms));
 }
 
 // Forward declaration of HEALPix's Trafo object. Header isn't installed, so

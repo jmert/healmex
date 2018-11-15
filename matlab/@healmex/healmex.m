@@ -21,6 +21,7 @@ classdef healmex < matlab.mixin.CustomDisplay
     nel = alm_getn(lmax, mmax)
 
     cl = alm2cl(alms1, alms2, lmax, mmax)
+    alms = almxfl(lmax, mmax, alms, fl)
     alms = rotate_alm(transform, alms, lmax, mmax)
     alms = hpx_rotate_alm(transform, alms, lmax, mmax)
     [almsT,almsG,almsC] = hpx_rotate_alm_pol(transform, almsT, almsG, almsC, lmax, mmax)
