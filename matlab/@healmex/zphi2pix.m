@@ -6,10 +6,6 @@ function ipix = zphi2pix(nside, order, z, phi)
 % Cartesian coordinate and phi is the azimuth angle in radians. order may be
 % 'RING' or 'NESTED'.
 
-  if ~exist('order','var') || isempty(order)
-    order = 'RING';
-  end
-
   ipix = libhealmex(int64(15), ...
       int64(nside), char(order), double(z), double(phi));
 end

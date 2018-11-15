@@ -6,10 +6,6 @@ function [z,phi] = pix2zphi(nside, order, ipix)
 % colatitude theta (i.e the Cartesian z coordinate of a unit vector) and
 % azimuth angle phi (in radians). order may be 'RING' or 'NESTED'.
 
-  if ~exist('order','var') || isempty(order)
-    order = 'RING';
-  end
-
   [z, phi] = libhealmex(int64(12), ...
       int64(nside), char(order), int64(ipix));
 end

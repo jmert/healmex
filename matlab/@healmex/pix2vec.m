@@ -6,10 +6,6 @@ function r = pix2vec(nside, order, ipix)
 % pointing to the pixel center as an N-by-3 matrix of x, y, and z
 % Cartesian coordinates. order may be 'RING' or 'NESTED'.
 
-  if ~exist('order','var') || isempty(order)
-    order = 'RING';
-  end
-
   r = libhealmex(int64(11), ...
       int64(nside), char(order), int64(ipix));
 end

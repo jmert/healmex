@@ -43,9 +43,6 @@ function [almsT,almsG,almsC]=rotate_alm_pol(transform, almsT, almsG, almsC, lmax
     error('Mismatched sizes in almsT and almsC');
   end
 
-  if iscell(transform) && length(transform) == 2
-  end
-
   [almsT,almsG,almsC] = libhealmex(int64(66), ...
       int32(transform), int32(lmax), int32(mmax), ...
       complex(double(almsT)), complex(double(almsG)), complex(double(almsC)));
