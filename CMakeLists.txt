@@ -70,7 +70,7 @@ ExternalProject_Add(healpix
             --disable-shared --with-pic ${HEALPIX_WITH_OPENMP}
     DOWNLOAD_COMMAND ""
     BUILD_COMMAND
-        make
+        $(MAKE)
     INSTALL_COMMAND
         make install
 )
