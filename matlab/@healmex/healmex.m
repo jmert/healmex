@@ -2,6 +2,8 @@ classdef healmex < matlab.mixin.CustomDisplay
   methods (Static)
     ipix = nest2ring(nside, ipix)
     ipix = ring2nest(nside, ipix)
+    npix = nside2npix(nside)
+    nside = npix2nside(npix)
 
     vec = pix2vec(nside, order, ipix)
     [z, phi] = pix2zphi(nside, order, ipix)
