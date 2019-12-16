@@ -21,6 +21,7 @@ classdef healmex < matlab.mixin.CustomDisplay
 
     [lmax, mmax] = alm_getlmmax(alms, lmax, mmax)
     nel = alm_getn(lmax, mmax)
+    idx = alm_getidx(lmax, l, m)
 
     cl = alm2cl(alms1, alms2, lmax, mmax)
     alms = almxfl(lmax, mmax, alms, fl)

@@ -1,7 +1,8 @@
 function [lmax,mmax] = alm_getlmmax(alms, lmax, mmax)
 % [lmax,mmax] = alm_getlmmax(alms, lmax, mmax)
 %
-% Infers the lmax and/or mmax from the alms vector.
+% Infers the lmax and/or mmax from the alms vector (or length of the
+% first dimension if alms is a matrix).
 
   if ~exist('lmax', 'var')
     lmax = [];
@@ -12,10 +13,10 @@ function [lmax,mmax] = alm_getlmmax(alms, lmax, mmax)
 
   if isempty(lmax)
     if isempty(mmax)
-      lmax = get_lmax1(numel(alms));
+      lmax = get_lmax1(size(alms,1));
       mmax = lmax;
     else
-      lmax = get_lmax2(numel(alms), mmax);
+      lmax = get_lmax2(size(alms,1), mmax);
     end
   elseif isempty(mmax)
     mmax = lmax;
