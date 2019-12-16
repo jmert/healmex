@@ -44,7 +44,7 @@ $ make && make install
 ```
 The build will start by downloading HEALPix, unpacking it, and compiling the
 C++ library. (The C and Fortran components are not built!) After that, the MEX
-function bindings to HEALPix's C++ APIs is compiled.
+function bindings to HEALPix's C++ APIs are compiled.
 
 To use within Matlab, the installation path should be added into Matlab's
 runtime path:
@@ -52,6 +52,19 @@ runtime path:
 >> addpath('~/matlab/healmex')
 ```
 Adding a similar line to your `startup.m` file may be useful.
+
+You may also be required to pre-load `libstdc++.so` from the GCC7+ installation
+path since Matlab (for at least versions R2018a through R2019b) are compiled
+with GCC6 and include a bundled copy of the C & C++ standard libraries.
+Since this package makes use of C++17 features that were only added with GCC7,
+using its `libstdc++` is required and must be pre-loaded before Matlab's
+startup routine loads its own privatey copy. To do this on Ubuntu 18.04 LTS,
+Matlab can be started with
+```shell
+$ LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libstdc++.so.6 matlab
+```
+Note that the path to `libstdc++.so.6` will vary based on your Linux
+distribution.
 
 ### Configuration Options
 
