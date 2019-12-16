@@ -16,7 +16,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/")
 # Include environment's paths library searches
 set(CMAKE_LIBRARY_PATH ${CMAKE_LIBRARY_PATH} $ENV{LIBRARY_PATH})
 if (NOT WIN32)
-    string(REPLACE ":" ";" CMAKE_LIBRARY_PATH ${CMAKE_LIBRARY_PATH})
+    string(REPLACE ":" ";" CMAKE_LIBRARY_PATH "${CMAKE_LIBRARY_PATH}")
 endif()
 
 include(ExternalProject)
