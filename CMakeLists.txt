@@ -32,9 +32,9 @@ pkg_search_module(CFITSIO REQUIRED cfitsio)
 #
 # Note that both VERSION and DATE must be updated in tandem with each release
 # update.
-set(HEALPIX_VERSION 3.40)
-set(HEALPIX_DATE 2018Jun22)
-set(HEALPIX_MD5HASH e40b4a439f34b6af11aa243751b37e1c)
+set(HEALPIX_VERSION 3.50)
+set(HEALPIX_DATE 2018Dec10)
+set(HEALPIX_MD5HASH ed7c9a3d7593577628ed1286fa7a9250)
 # These should only need to be editted if the base URLs change.
 set(HEALPIX_PKG healpix-${HEALPIX_VERSION})
 set(HEALPIX_BASEURL https://managedway.dl.sourceforge.net/project/healpix/)
