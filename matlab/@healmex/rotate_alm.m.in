@@ -1,4 +1,4 @@
-function alms = rotate_alms(transform, alms, lmax, mmax)
+function alms = rotate_alm(transform, alms, lmax, mmax)
 % alms = rotate_alms(transform, alms, lmax, mmax)
 %
 % INPUTS
