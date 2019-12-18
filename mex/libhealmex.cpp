@@ -30,6 +30,20 @@ inline bool isdouble(Array& a)    { return a.getType() == ArrayType::DOUBLE; }
 inline bool iscomplex64(Array& a) { return a.getType() == ArrayType::COMPLEX_DOUBLE; }
 
 inline bool isscalar(Array& a) { return a.getNumberOfElements() == 1; }
+inline bool isvector(Array& a) {
+    auto dims = a.getDimensions();
+    if (dims.size() > 2)
+        return false;
+    if (dims[0] == 1 || dims[1] == 1)
+        return true;
+    return false;
+}
+inline bool ismatrix(Array& a) {
+    auto dims = a.getDimensions();
+    if (dims.size() > 2)
+        return false;
+    return true;
+}
 
 template <typename T, typename A> buffer_ptr_t<T> buffer(A& array);
 
@@ -104,6 +118,14 @@ public:
         #define CHECK_INPUT_SCALAR(funcname, argname, num) CHECK_WRAP( \
             if (!isscalar(inputs[num])) { \
                 error(funcname ": argument " #num " (" argname ") must be a scalar.", num); \
+            } )
+        #define CHECK_INPUT_VECTOR(funcname, argname, num) CHECK_WRAP( \
+            if (!isvector(inputs[num])) { \
+                error(funcname ": argument " #num " (" argname ") must be a vector.", num); \
+            } )
+        #define CHECK_INPUT_MATRIX(funcname, argname, num) CHECK_WRAP( \
+            if (!ismatrix(inputs[num])) { \
+                error(funcname ": argument " #num " (" argname ") must be a matrix.", num); \
             } )
         #define CHECK_INPUT_INT32(funcname, argname, num) CHECK_WRAP( \
             if (!isint32(inputs[num])) { \
@@ -283,7 +305,9 @@ public:
                 CHECK_INPUT_SCALAR("almxfl", "mmax", 2);
                 CHECK_INPUT_INT32("almxfl", "mmax", 2);
                 CHECK_INPUT_COMPLEX64("almxfl", "alms", 3);
+                CHECK_INPUT_VECTOR("almxfl", "alms", 3);
                 CHECK_INPUT_COMPLEX64("almxfl", "fl", 4);
+                CHECK_INPUT_VECTOR("almxfl", "fl", 4);
                 mex_almxfl(outputs, inputs);
                 break;
 
@@ -422,6 +446,17 @@ healpix nsideorder(const TypedArray<int64_t> ml_nside,
     int64_t nside = ml_nside[0];
     auto order = string2HealpixScheme(ml_order.toAscii());
     return healpix(nside, order, SET_NSIDE);
+}
+
+// Computes the length of the complete alm vector for a given lmax & mmax
+inline
+int64_t alm_getn(int64_t lmax, int64_t mmax)
+{
+    if (lmax < 0)
+        return 0;
+    if (mmax < 0 || lmax < mmax)
+        return 0;
+    return ((mmax + 1) * (mmax + 2)) / 2 + (mmax + 1) * (lmax - mmax);
 }
 
 /* Externally callable function implementations */
@@ -797,6 +832,11 @@ DISPATCH_FN(almxfl) {
     auto [buf_alms, len_alms] = bufferlen<complex64>(inputs[3]);
     auto [buf_fl,   len_fl]   = bufferlen<complex64>(inputs[4]);
 
+    if (len_alms != alm_getn(lmax, mmax)) {
+        error("almxfl: Length of alms(=%d) is incompatible with given"
+              " lmax(=%d) and mmax(=%d)",
+                len_alms, lmax, mmax);
+    }
     size_t ii = 0;
     for (size_t mm = 0; mm <= mmax; ++mm) {
         for (size_t ll = mm; ll <= lmax; ++ll) {

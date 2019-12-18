@@ -1,0 +1,33 @@
+function alms = almxfl(alms, fl, lmax, mmax)
+% alms = almxfl(alms, fl, lmax, mmax)
+%
+% Multiplies a set of alms by a vector fl.
+%
+% INPUTS
+%   alms    Vector of harmonic coefficients.
+%
+%   fl      Vector of factors f_l by which to multiply a_lm.
+%
+%   lmax    The maximum degree of the harmonic coefficients, alms. Optional
+%           if lmax and mmax can be inferred by alm_getlmmax().
+%
+%   mmax    The maximum order of the harmonic coefficients, alms. Optional
+%           if lmax and mmax can be inferred by alm_getlmmax().
+%
+% OUTPUTS
+%   alms    Modified alms.
+
+  if ~exist('lmax','var')
+    lmax = [];
+  end
+  if ~exist('mmax','var')
+    mmax = [];
+  end
+  [lmax, mmax] = @CLASSPREFIX@alm_getlmmax(alms, lmax, mmax);
+
+  alms = complex(double(alms));
+  for ii = 1:size(alms,2)
+    alms(:,ii) = libhealmex(int64(62), ...
+        int32(lmax), int32(mmax), complex(alms(:,ii)), complex(double(fl)));
+  end
+end
