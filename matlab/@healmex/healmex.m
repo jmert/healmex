@@ -13,10 +13,12 @@ classdef healmex < matlab.mixin.CustomDisplay
     ipix = ang2pix(nside, order, theta, phi)
 
     alms = map2alm(map, order, lmax, mmax, nside, niter)
+    alms = map2alm_pure(map, wmap, order, lmax, mmax, nside, niter)
     map = alm2map(alms, nside, order, lmax, mmax)
     alms = hpx_map2alm(nside, order, map, lmax, mmax, rwghts, iter)
     map = hpx_alm2map(lmax, mmax, alms, nside, order)
     [almsT,almsG,almsC] = hpx_map2alm_pol(nside, order, mapT, mapQ, mapU, lmax, mmax, rwghts, iter)
+    [almsG,almsC] = hpx_map2alm_pure(nside, order, mapQ, mapU, mapW, lmax, mmax, rwghts, iter)
     [mapT,mapQ,mapU] = hpx_alm2map_pol(lmax, mmax, almsT, almsG, almsC, nside, order)
 
     [lmax, mmax] = alm_getlmmax(alms, lmax, mmax)
@@ -28,6 +30,13 @@ classdef healmex < matlab.mixin.CustomDisplay
     alms = rotate_alm(transform, alms, lmax, mmax)
     alms = hpx_rotate_alm(transform, alms, lmax, mmax)
     [almsT,almsG,almsC] = hpx_rotate_alm_pol(transform, almsT, almsG, almsC, lmax, mmax)
+
+    amap = apodize_mask(map, radius, order)
+    amap = hpx_apodize_mask(nside, order, map, radius)
+    amap = shrink_mask(map, radius, order)
+    amap = hpx_shrink_mask(nside, order, map, radius)
+    amap = smooth_mask(map, radius, order)
+    amap = hpx_smooth_mask(nside, order, map, radius, rwghts)
   end
 
   methods (Access = protected)

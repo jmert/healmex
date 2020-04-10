@@ -66,7 +66,7 @@ ExternalProject_Add(healpix
     SOURCE_DIR "${HEALPIX_PKG}/src/healpix/src/cxx/autotools"
     BUILD_IN_SOURCE YES
     CONFIGURE_COMMAND
-        autoreconf -i && ./configure --prefix=<INSTALL_DIR>
+        libtoolize && autoreconf -i && ./configure --prefix=<INSTALL_DIR>
             --disable-shared --with-pic ${HEALPIX_WITH_OPENMP}
     DOWNLOAD_COMMAND ""
     BUILD_COMMAND

@@ -7,6 +7,9 @@
 
 #include <healpix_map.h>
 #include <alm.h>
+#include <sharp_almhelpers.h>
+#include <sharp_geomhelpers.h>
+#include <sharp_cxx.h>
 #include <alm_healpix_tools.h>
 #include <alm_powspec_tools.h>
 #include <powspec.h>
@@ -45,6 +48,15 @@ inline bool ismatrix(Array& a) {
     return true;
 }
 
+inline double angdist(pointing p1, pointing p2){
+  /*double gamma = p2.phi - p1.phi; 
+    return acos(cos(p1.theta)*cos(p2.theta) + sin(p1.theta)*sin(p2.theta)*cos(gamma));*/
+  vec3 v1 = p1.to_vec3();
+  vec3 v2 = p2.to_vec3();
+  return acos(dotprod(v1,v2));
+}
+
+
 template <typename T, typename A> buffer_ptr_t<T> buffer(A& array);
 
 /*
@@ -63,12 +75,16 @@ enum libhealpix_mex_calls {
     id_ang2pix          = 16,
     id_map2alm_iter     = 53,
     id_map2alm_pol_iter = 54,
+    id_map2alm_pure     = 67,
     id_alm2map          = 55,
     id_alm2map_pol      = 56,
     id_alm2cl           = 61,
     id_almxfl           = 62,
     id_rotate_alm       = 65,
-    id_rotate_alm_pol   = 66
+    id_rotate_alm_pol   = 66,
+    id_apodize_mask     = 68,
+	id_shrink_mask      = 69,
+	id_smooth_mask      = 70
 };
 
 class MexFunction : public matlab::mex::Function {
@@ -258,6 +274,24 @@ public:
                 CHECK_INPUT_INT32("map2alm_pol_iter", "iter", 9);
                 mex_map2alm_pol_iter(outputs, inputs);
                 break;
+				
+            case id_map2alm_pure:
+                CHECK_NINOUT("map2alm_pure", 9, 2);
+                CHECK_INPUT_SCALAR("map2alm_pure", "nside", 1);
+                CHECK_INPUT_INT64("map2alm_pure", "nside", 1);
+                CHECK_INPUT_CHAR("map2alm_pure", "order", 2);
+                CHECK_INPUT_DOUBLE("map2alm_pure", "mapQ", 3);
+                CHECK_INPUT_DOUBLE("map2alm_pure", "mapU", 4);
+                CHECK_INPUT_DOUBLE("map2alm_pure", "mapW", 5);
+                CHECK_INPUT_SCALAR("map2alm_pure", "lmax", 6);
+                CHECK_INPUT_INT32("map2alm_pure", "lmax", 6);
+                CHECK_INPUT_SCALAR("map2alm_pure", "mmax", 7);
+                CHECK_INPUT_INT32("map2alm_pure", "mmax", 7);
+                CHECK_INPUT_DOUBLE("map2alm_pure", "rwghts", 8);
+                CHECK_INPUT_SCALAR("map2alm_pure", "iter", 9);
+                CHECK_INPUT_INT32("map2alm_pure", "iter", 9);
+                mex_map2alm_pure(outputs, inputs);
+                break;
 
             case id_alm2map:
                 CHECK_NINOUT("alm2map", 5, 1);
@@ -315,10 +349,10 @@ public:
                 CHECK_NINOUT("rotate_alm", 4, 1);
                 CHECK_INPUT_SCALAR("rotate_alm", "itransform", 1);
                 CHECK_INPUT_INT32("rotate_alm", "itransform", 1);
-                CHECK_INPUT_SCALAR("alm2cl", "lmax", 2);
-                CHECK_INPUT_INT32("alm2cl", "lmax", 2);
-                CHECK_INPUT_SCALAR("alm2cl", "mmax", 3);
-                CHECK_INPUT_INT32("alm2cl", "mmax", 3);
+                CHECK_INPUT_SCALAR("rotate_alm", "lmax", 2);
+                CHECK_INPUT_INT32("rotate_alm", "lmax", 2);
+                CHECK_INPUT_SCALAR("rotate_alm", "mmax", 3);
+                CHECK_INPUT_INT32("rotate_alm", "mmax", 3);
                 CHECK_INPUT_COMPLEX64("rotate_alm", "alms", 4);
                 mex_rotate_alm(outputs, inputs);
                 break;
@@ -327,14 +361,48 @@ public:
                 CHECK_NINOUT("rotate_alm_pol", 6, 3);
                 CHECK_INPUT_SCALAR("rotate_alm_pol", "itransform", 1);
                 CHECK_INPUT_INT32("rotate_alm_pol", "itransform", 1);
-                CHECK_INPUT_SCALAR("alm2cl", "lmax", 2);
-                CHECK_INPUT_INT32("alm2cl", "lmax", 2);
-                CHECK_INPUT_SCALAR("alm2cl", "mmax", 3);
-                CHECK_INPUT_INT32("alm2cl", "mmax", 3);
+                CHECK_INPUT_SCALAR("rotate_alm_pol", "lmax", 2);
+                CHECK_INPUT_INT32("rotate_alm_pol", "lmax", 2);
+                CHECK_INPUT_SCALAR("rotate_alm_pol", "mmax", 3);
+                CHECK_INPUT_INT32("rotate_alm_pol", "mmax", 3);
                 CHECK_INPUT_COMPLEX64("rotate_alm_pol", "almsT", 4);
                 CHECK_INPUT_COMPLEX64("rotate_alm_pol", "almsG", 5);
                 CHECK_INPUT_COMPLEX64("rotate_alm_pol", "almsC", 6);
                 mex_rotate_alm_pol(outputs, inputs);
+                break;
+
+            case id_apodize_mask:
+                CHECK_NINOUT("apodize_mask", 4, 1);
+                CHECK_INPUT_SCALAR("apodize_mask", "nside", 1);
+                CHECK_INPUT_INT64("apodize_mask", "nside", 1);
+                CHECK_INPUT_CHAR("apodize_mask", "order", 2);
+                CHECK_INPUT_DOUBLE("apodize_mask", "map", 3);
+                CHECK_INPUT_SCALAR("apodize_mask", "radius", 4);
+                CHECK_INPUT_DOUBLE("apodize_mask", "radius", 4);
+                mex_apodize_mask(outputs, inputs);
+                break;
+
+            case id_shrink_mask:
+                CHECK_NINOUT("shrink_mask", 4, 1);
+                CHECK_INPUT_SCALAR("shrink_mask", "nside", 1);
+                CHECK_INPUT_INT64("shrink_mask", "nside", 1);
+                CHECK_INPUT_CHAR("shrink_mask", "order", 2);
+                CHECK_INPUT_DOUBLE("shrink_mask", "map", 3);
+                CHECK_INPUT_SCALAR("shrink_mask", "radius", 4);
+                CHECK_INPUT_DOUBLE("shrink_mask", "radius", 4);
+                mex_shrink_mask(outputs, inputs);
+                break;
+
+            case id_smooth_mask:
+                CHECK_NINOUT("smooth_mask", 5, 1);
+                CHECK_INPUT_SCALAR("smooth_mask", "nside", 1);
+                CHECK_INPUT_INT64("smooth_mask", "nside", 1);
+                CHECK_INPUT_CHAR("smooth_mask", "order", 2);
+                CHECK_INPUT_DOUBLE("smooth_mask", "map", 3);
+                CHECK_INPUT_SCALAR("smooth_mask", "radius", 4);
+                CHECK_INPUT_DOUBLE("smooth_mask", "radius", 4);
+                CHECK_INPUT_DOUBLE("smooth_mask", "rwghts", 5);
+                mex_smooth_mask(outputs, inputs);
                 break;
 
             default:
@@ -361,6 +429,7 @@ private:
 
     DISPATCH_FN(map2alm_iter);
     DISPATCH_FN(map2alm_pol_iter);
+    DISPATCH_FN(map2alm_pure);
     DISPATCH_FN(alm2map);
     DISPATCH_FN(alm2map_pol);
 
@@ -368,6 +437,9 @@ private:
     DISPATCH_FN(almxfl);
     DISPATCH_FN(rotate_alm);
     DISPATCH_FN(rotate_alm_pol);
+    DISPATCH_FN(apodize_mask);
+    DISPATCH_FN(shrink_mask);
+    DISPATCH_FN(smooth_mask);
 
     #undef DISPATCH_FN
 
@@ -714,6 +786,429 @@ DISPATCH_FN(map2alm_pol_iter) {
     outputs[1] = factory.createArrayFromBuffer({nalms}, move(buf_almsG));
     outputs[2] = factory.createArrayFromBuffer({nalms}, move(buf_almsC));
 }
+
+void map2alm_spin_iter(sharp_cxxjob<double> &job, Healpix_Map<double> &mapQ, Healpix_Map<double> &mapU, Alm<xcomplex<double> > &almG, Alm<xcomplex<double> > &almC, int spin, int num_iter)
+{
+job.map2alm_spin(&mapQ[0],&mapU[0],&almG(0,0),&almC(0,0),spin,false);
+for (int iter=1; iter<=num_iter; ++iter)
+ {
+ Healpix_Map<double> mapQ2(mapQ.Nside(),mapQ.Scheme(),SET_NSIDE),
+				mapU2(mapU.Nside(),mapU.Scheme(),SET_NSIDE);
+
+ job.alm2map_spin(&almG(0,0),&almC(0,0),&mapQ2[0],&mapU2[0],spin,false);
+ #pragma omp parallel for
+ for (int m=0; m<mapQ.Npix(); ++m)
+   {
+   mapQ2[m] = mapQ[m]-mapQ2[m];
+   mapU2[m] = mapU[m]-mapU2[m];
+   }
+ job.map2alm_spin(&mapQ2[0],&mapU2[0],&almG(0,0),&almC(0,0),spin,true);
+ }
+}
+
+DISPATCH_FN(map2alm_pure) {
+    healpix base = nsideorder(inputs[1], inputs[2]);
+    auto [buf_mapQ, len_mapQ] = bufferlen<double>(inputs[3]);
+    auto [buf_mapU, len_mapU] = bufferlen<double>(inputs[4]);
+    auto [buf_mapPw, len_mapPw] = bufferlen<double>(inputs[5]);
+    auto lmax = scalar<int32_t>(inputs[6]);
+    auto mmax = scalar<int32_t>(inputs[7]);
+    auto [buf_wght, len_wght] = bufferlen<double>(inputs[8]);
+    auto iter = scalar<int32_t>(inputs[9]);
+
+    auto mapQ = healmap();
+    auto mapU = healmap();
+    auto papQ = healmap();
+    auto papU = healmap();
+    auto wapQ = healmap();
+    auto wapU = healmap();
+    {
+        arr<double> tmp(buf_mapQ.get(), len_mapQ);
+        mapQ.Set(tmp, base.Scheme());
+		papQ.SetNside(base.Nside(),base.Scheme());
+    }
+    {
+        arr<double> tmp(buf_mapU.get(), len_mapU);
+        mapU.Set(tmp, base.Scheme());
+		papU.SetNside(base.Nside(),base.Scheme());
+    }
+    {
+        arr<double> tmp(buf_mapPw.get(), len_mapPw);
+        wapQ.Set(tmp, base.Scheme());
+		wapU.SetNside(base.Nside(),base.Scheme());
+    }
+
+    arr<double> rwghts(buf_wght.get(), len_wght);
+
+    auto nalms = Alm_Base::Num_Alms(lmax, mmax);
+    auto almsG = healalm();
+    auto almsC = healalm();
+    auto plmsG = healalm();
+    auto plmsC = healalm();
+    auto wlmsG = healalm();
+    auto wlmsC = healalm();
+
+    auto buf_almsG = factory.createBuffer<complex64>(nalms);
+    auto buf_almsC = factory.createBuffer<complex64>(nalms);
+	{
+        arr<complex64> tmp(buf_almsG.get(), nalms);
+        almsG.Set(tmp, lmax, mmax);
+    }
+    {
+        arr<complex64> tmp(buf_almsC.get(), nalms);
+        almsC.Set(tmp, lmax, mmax);
+    }
+	{
+		plmsG.Set(lmax, mmax);
+		plmsC.Set(lmax, mmax);
+	}
+	{
+		wlmsG.Set(lmax, mmax);
+		wlmsC.Set(lmax, mmax);
+	}
+	
+	map2alm_iter(wapQ, wlmsG, iter, rwghts);
+	
+	arr<double> f_l;
+	f_l.alloc(lmax+1);
+	
+	sharp_cxxjob<double> job;
+	job.set_weighted_Healpix_geometry (base.Nside(), &rwghts[0]);
+	job.set_triangular_alm_info (lmax, mmax);
+	
+	#pragma omp parallel for
+	for (int i=0; i< papQ.Npix(); i++) {
+		papQ[i]=mapQ[i]*wapQ[i];
+		papU[i]=mapU[i]*wapQ[i];
+	}
+	
+	map2alm_spin_iter(job,papQ,papU,almsG,almsC,2,iter);
+	
+	// Compute spin-1 mask
+	for(size_t l=0;l<=lmax;l++) //The minus sign is because of the definition of E-modes
+		f_l[l]=-sqrt((l+1.)*l);
+		
+	#pragma omp parallel for
+	for (size_t m=0; m<=mmax; m++) {
+		for (size_t l=m; l<=lmax; l++) {
+			wlmsG(l,m)=f_l[l]*wlmsG(l,m);
+		}
+	}
+	job.alm2map_spin(&wlmsG(0,0),&wlmsC(0,0),&wapQ[0],&wapU[0],1,false);
+	
+	
+	// Product with spin-1 mask
+	#pragma omp parallel for
+	for(size_t ip=0;ip<papQ.Npix();ip++) {
+		papQ[ip]=wapQ[ip]*mapQ[ip]+wapU[ip]*mapU[ip];
+		papU[ip]=wapQ[ip]*mapU[ip]-wapU[ip]*mapQ[ip];
+	}
+	
+	// Compute SHT, multiply by 2*sqrt((l+1)!(l-2)!/((l-1)!(l+2)!)) and add to alm_out
+	map2alm_spin_iter(job,papQ,papU,plmsG,plmsC,1,iter);
+	for(size_t l=0;l<=lmax;l++) {
+		if(l>1)
+		  f_l[l]=2./sqrt((l+2.)*(l-1.));
+		else
+		  f_l[l]=0;
+	}	
+	
+	#pragma omp parallel for
+	for (size_t m=0; m<=mmax; m++) {
+		for (size_t l=m; l<=lmax; l++) {
+			// almsG(l,m)+=f_l[l]*plmsG(l,m);
+			almsC(l,m)+=f_l[l]*plmsC(l,m);
+		}
+	}
+	
+	// Compute spin-2 mask
+	for(size_t l=0;l<=lmax;l++) { //The extra minus sign is because of the scalar SHT below (E-mode def for s=0)
+		if(l>1)
+			f_l[l]=-sqrt((l+2.)*(l-1.));
+		else
+			f_l[l]=0;
+	}
+	
+	#pragma omp parallel for
+	for (size_t m=0; m<=mmax; m++) {
+		for (size_t l=m; l<=lmax; l++) {
+			wlmsG(l,m)=f_l[l]*wlmsG(l,m);
+		}
+	}
+	
+	job.alm2map_spin(&wlmsG(0,0),&wlmsC(0,0),&wapQ[0],&wapU[0],2,false);
+	
+	// Product with spin-2 mask
+	#pragma omp parallel for
+	for(size_t ip=0;ip<papQ.Npix();ip++) {
+		papQ[ip]=wapQ[ip]*mapQ[ip]+wapU[ip]*mapU[ip];
+		papU[ip]=wapQ[ip]*mapU[ip]-wapU[ip]*mapQ[ip];
+	}
+	
+	// Compute SHT, multiply by sqrt((l-2)!/(l+2)!) and add to alm_out
+	map2alm_spin_iter(job,papQ,papU,plmsG,plmsC,0,iter);
+	for(size_t l=0;l<=lmax;l++) {
+		if(l>1)
+			f_l[l]=1./sqrt((l+2.)*(l+1.)*l*(l-1.));
+		else
+			f_l[l]=0;
+	}
+	#pragma omp parallel for
+	for (size_t m=0; m<=mmax; m++) {
+		for (size_t l=m; l<=lmax; l++) {
+			// almsG(l,m)+=f_l[l]*plmsG(l,m);
+			almsC(l,m)+=f_l[l]*plmsC(l,m);
+		}
+	}
+	
+    outputs[0] = factory.createArrayFromBuffer({nalms}, move(buf_almsG));
+    outputs[1] = factory.createArrayFromBuffer({nalms}, move(buf_almsC));
+}
+
+
+void apodize(const Healpix_Map<double> & distmap, Healpix_Map<double> & mask, double radius, bool pixbool,bool inside){
+	double omega = M_PI/radius;
+	int    sign_coef ;
+	
+	if (pixbool) sign_coef = 1;  // Transition from 0 to 1 if pixbool is 1 
+	else         sign_coef = -1; // Transition from 1 to 0 if pixbool is 0
+	if (inside) sign_coef = - sign_coef; // invert the transition to apodize inside
+	double oradius =  radius;//60/60*degr2rad; 
+	#pragma omp parallel for  
+	for(int i = 0; i<distmap.Npix(); i++)
+	{
+		if ((distmap[i] >= oradius) || (approx(distmap[i],Healpix_undef))) mask[i] = 1-pixbool;
+		//if (approx(distmap[i],Healpix_undef)) mask[i] = 1-pixbool;
+		else if ((inside) && (distmap[i]>=radius)) mask[i] = pixbool;
+		else if ((!inside) && (distmap[i]>=radius)) mask[i] = 1-pixbool;
+		else if (distmap[i] ==0) mask[i] = pixbool;
+		else{
+			mask[i] = 0.5 + sign_coef*(0.5* cos(omega * distmap[i]));
+		}
+	}
+}
+
+// Distance map : starting value is 2*pi outside of the mask and 0 inside
+// To apodize inside : for each point inside the mask, get all pixels inside a disk of radius "radius"
+// If the disk cross the border of the mask, update the distance value of all pixel inside of the mask 
+// which are close to the border with the minimum distance value to the border 
+// Credits: Marc Betoule, Xpure
+void computeDistance_in(const Healpix_Map<double> & mask, Healpix_Map<double> & distmap, double radius,bool pixbool){
+  vector<int> listpix;
+  double mind;
+  for(int i = 0; i<mask.Npix();i++){
+    // for each point in the mask
+    if(mask[i] == pixbool){
+      pointing pixcenter = mask.pix2ang(i);
+      // get a disk
+      mask.query_disc(pixcenter ,radius, listpix);
+      // maximum value of the distance map is radius
+      mind = 2*M_PI;//radius;
+      for(vector<int>::iterator p = listpix.begin(); p!=listpix.end(); p++){
+		double v = distmap[*p];
+		// for each point of the disk outside of the mask
+		if(v==2*M_PI){
+			pointing p2 = mask.pix2ang(*p);
+		    // get the distance
+			double da = angdist(pixcenter,p2);
+		    // get the minimum distance
+		    if (da<mind) mind = da;
+		}
+      }
+      // update the distance value if a minimum is found
+      //      distmap[i] = mind==radius?0:mind;
+      distmap[i] = mind>radius?0:mind;
+    }
+  }
+}
+
+
+// Distance map : starting value is 2*pi outside of the mask and 0 inside
+// To apodize outside : for each point inside the mask, get all pixels inside a disk of radius "radius"
+// If the disk cross the border of the mask, update the distance value of all pixel outside of the mask 
+// which are close to the border with the minimum distance value to the border 
+void computeDistance_out(const Healpix_Map<double> & mask, Healpix_Map<double> & distmap, double radius,bool pixbool){
+  vector<int> listpix;
+  for(int i = 0; i<mask.Npix();i++){
+    // for each point in the mask
+    if(mask[i] == pixbool){
+      pointing pixcenter = mask.pix2ang(i);
+      // get a disk
+      mask.query_disc(pixcenter ,radius, listpix);
+      for(vector<int>::iterator p = listpix.begin(); p!=listpix.end(); p++){
+	double v = distmap[*p];
+	// for each point of the disk outside of the mask
+      	if(v != 0){
+      	  pointing p2 = mask.pix2ang(*p);
+	  // get the distance
+      	  double da = angdist(pixcenter,p2);
+	  // get the minimum distance
+      	  distmap[*p] = v<da?v:da; 
+	}
+      }
+    }
+  }
+}
+
+
+DISPATCH_FN(shrink_mask) {
+    healpix base = nsideorder(inputs[1], inputs[2]);
+    auto [buf_map, len_map] = bufferlen<double>(inputs[3]);
+    TypedArray<double> radius_ = inputs[4];
+	double radius=radius_[0];
+	
+	double radiusrad=radius*M_PI/180;
+
+    auto npix = 12 * base.Nside() * base.Nside();
+
+    auto map = healmap();
+	auto amap = healmap();
+    auto buf_amap = factory.createBuffer<double>(npix);
+    auto dum_map = healmap();
+    {
+        arr<double> tmp(buf_map.get(), len_map);
+        map.Set(tmp, base.Scheme());
+		dum_map.SetNside(base.Nside(),base.Scheme());
+    }
+    {
+        arr<double> tmp(buf_amap.get(), npix);
+        amap.Set(tmp, base.Scheme());
+    }
+	#pragma omp for schedule(dynamic)
+	for(int ip=0;ip<npix;ip++) {
+		dum_map[ip]=1;
+	}
+	
+	#pragma omp parallel default(none) shared(npix,map,dum_map,radiusrad,base)
+	{
+    rangeset<int64_t> listpix;
+
+	#pragma omp for schedule(dynamic)
+	for(int ip=0;ip<npix;ip++) {
+		if(map[ip]<=0) {
+			base.query_disc(pointing(base.pix2vec(ip)),2.5*radiusrad,listpix);
+			int n = listpix.size();
+			for(int i=0;i<n;i++) {
+				for(int j=listpix.ivbegin(i);j<listpix.ivend(i);j++) {
+					dum_map[j]=0;
+				}
+			}	
+		}
+	} //end omp for
+	} //end omp parallel
+	
+	#pragma omp parallel for
+	for(size_t ip=0;ip<amap.Npix();ip++) {
+		amap[ip]=map[ip]*dum_map[ip];
+	}
+
+    outputs[0] = factory.createArrayFromBuffer({npix}, move(buf_amap));
+}
+
+DISPATCH_FN(smooth_mask) {
+    healpix base = nsideorder(inputs[1], inputs[2]);
+    auto [buf_map, len_map] = bufferlen<double>(inputs[3]);
+    TypedArray<double> radius_ = inputs[4];
+	double radius=radius_[0];
+    auto [buf_wght, len_wght] = bufferlen<double>(inputs[5]);
+	
+	double radiusrad=radius*M_PI/180;
+
+    auto npix = 12 * base.Nside() * base.Nside();
+
+    auto map = healmap();
+	auto amap = healmap();
+    auto buf_amap = factory.createBuffer<double>(npix);
+    {
+        arr<double> tmp(buf_map.get(), len_map);
+        map.Set(tmp, base.Scheme());
+    }
+    {
+        arr<double> tmp(buf_amap.get(), npix);
+        amap.Set(tmp, base.Scheme());
+    }
+	int32_t lmax = 3 * base.Nside() - 1;
+	int32_t mmax = lmax ;
+	
+	auto dum_alms = healalm();
+	{
+		dum_alms.Set(lmax, mmax);
+	}
+
+    arr<double> rwghts(buf_wght.get(), len_wght);
+
+	map2alm_iter(map, dum_alms, 3, rwghts);
+
+	arr<double> f_l;
+	f_l.alloc(lmax+1);
+	
+	double sigma=0.00012352884853326381*radiusrad*180*60*2.355/M_PI;
+	for(size_t l=0;l<=lmax;l++) 
+		f_l[l]=exp(-0.5*l*(l+1)*sigma*sigma);
+		
+	#pragma omp parallel for
+	for (size_t m=0; m<=mmax; ++m) {
+		for (size_t l=m; l<=lmax; ++l) {
+			dum_alms(l,m)*=f_l[l];
+		}
+	}
+	
+	alm2map(dum_alms, amap);
+
+    outputs[0] = factory.createArrayFromBuffer({npix}, move(buf_amap));
+}
+
+DISPATCH_FN(apodize_mask) {
+    healpix base = nsideorder(inputs[1], inputs[2]);
+    auto [buf_map, len_map] = bufferlen<double>(inputs[3]);
+    TypedArray<double> radius_ = inputs[4];
+	double radius=radius_[0]*M_PI/180;
+
+    auto npix = 12 * base.Nside() * base.Nside();
+
+    auto map = healmap();
+	auto amap = healmap();
+    auto buf_amap = factory.createBuffer<double>(npix);
+    auto distmap = healmap();
+    {
+        arr<double> tmp(buf_map.get(), len_map);
+        map.Set(tmp, base.Scheme());
+		distmap.SetNside(base.Nside(),base.Scheme());
+    }
+    {
+        arr<double> tmp(buf_amap.get(), npix);
+        amap.Set(tmp, base.Scheme());
+    }
+	distmap.fill(2*M_PI);
+	
+	bool pixbool  = 0;
+	
+	#pragma omp parallel for
+	for(int i = 0; i<map.Npix(); i++){
+		if(map[i] == pixbool) distmap[i] = 0;}
+	
+	computeDistance_out(map, distmap, radius, pixbool);
+	
+	// check that the radius of the input distance map is compatible
+    double min, max;
+    distmap.minmax(min,max);
+    double pixsize = sqrt(M_PI/(3*distmap.Nside()*distmap.Nside()));
+    if(max < radius-pixsize){
+      cout << "radius too large for the input dist map\n";
+      exit(-1);
+    }
+	
+    // call the right function to apodize
+    apodize(distmap, amap, radius, pixbool, false);
+	
+	#pragma omp for schedule(dynamic)
+	for(int ip=0;ip<npix;ip++) {
+		amap[ip]=amap[ip];
+	}
+
+    outputs[0] = factory.createArrayFromBuffer({npix}, move(buf_amap));
+}
+
 
 DISPATCH_FN(alm2map) {
     auto lmax = scalar<int32_t>(inputs[1]);
