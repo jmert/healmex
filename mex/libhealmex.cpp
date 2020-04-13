@@ -822,6 +822,7 @@ DISPATCH_FN(map2alm_pure) {
     auto papU = healmap();
     auto wapQ = healmap();
     auto wapU = healmap();
+    auto mask = healmap();
     {
         arr<double> tmp(buf_mapQ.get(), len_mapQ);
         mapQ.Set(tmp, base.Scheme());
@@ -834,8 +835,9 @@ DISPATCH_FN(map2alm_pure) {
     }
     {
         arr<double> tmp(buf_mapPw.get(), len_mapPw);
-        wapQ.Set(tmp, base.Scheme());
+		wapQ.Set(tmp, base.Scheme());
 		wapU.SetNside(base.Nside(),base.Scheme());
+        mask.SetNside(base.Nside(),base.Scheme());
     }
 
     arr<double> rwghts(buf_wght.get(), len_wght);
@@ -867,8 +869,6 @@ DISPATCH_FN(map2alm_pure) {
 		wlmsC.Set(lmax, mmax);
 	}
 	
-	map2alm_iter(wapQ, wlmsG, iter, rwghts);
-	
 	arr<double> f_l;
 	f_l.alloc(lmax+1);
 	
@@ -877,87 +877,100 @@ DISPATCH_FN(map2alm_pure) {
 	job.set_triangular_alm_info (lmax, mmax);
 	
 	#pragma omp parallel for
-	for (int i=0; i< papQ.Npix(); i++) {
-		papQ[i]=mapQ[i]*wapQ[i];
-		papU[i]=mapU[i]*wapQ[i];
+	for (int ip=0; ip< wapQ.Npix(); ip++) {
+		if (wapQ[ip]!=0.) mask[ip]=1.; 
+		else mask[ip]=0.;
+		wapU[ip]=0.;
+	}	
+	map2alm_spin_iter(job,wapQ,wapU,wlmsG,wlmsC,0,iter);
+
+	#pragma omp parallel for
+	for (int ip=0; ip< papQ.Npix(); ip++) {
+		papQ[ip]=mapQ[ip]*wapQ[ip];
+		papU[ip]=mapU[ip]*wapQ[ip];
 	}
 	
 	map2alm_spin_iter(job,papQ,papU,almsG,almsC,2,iter);
 	
 	// Compute spin-1 mask
-	for(size_t l=0;l<=lmax;l++) //The minus sign is because of the definition of E-modes
-		f_l[l]=-sqrt((l+1.)*l);
+	for(int l=0;l<=lmax;l++) //The minus sign is because of the definition of E-modes
+		f_l[l]=-sqrt(((double)l+1.)*(double)l);
 		
-	#pragma omp parallel for
-	for (size_t m=0; m<=mmax; m++) {
-		for (size_t l=m; l<=lmax; l++) {
-			wlmsG(l,m)=f_l[l]*wlmsG(l,m);
-		}
-	}
+	// #pragma omp parallel for
+	// for (size_t m=0; m<=mmax; m++) {
+		// for (size_t l=m; l<=lmax; l++) {
+			// wlmsG(l,m)=wlmsG(l,m)*f_l[l];
+		// }
+	// }
+	wlmsG.ScaleL(f_l);
+	wlmsC.ScaleL(f_l);
 	job.alm2map_spin(&wlmsG(0,0),&wlmsC(0,0),&wapQ[0],&wapU[0],1,false);
-	
 	
 	// Product with spin-1 mask
 	#pragma omp parallel for
-	for(size_t ip=0;ip<papQ.Npix();ip++) {
-		papQ[ip]=wapQ[ip]*mapQ[ip]+wapU[ip]*mapU[ip];
-		papU[ip]=wapQ[ip]*mapU[ip]-wapU[ip]*mapQ[ip];
+	for(int ip=0;ip<papQ.Npix();ip++) {
+		papQ[ip]=(wapQ[ip]*mapQ[ip]+wapU[ip]*mapU[ip])*mask[ip];
+		papU[ip]=(wapQ[ip]*mapU[ip]-wapU[ip]*mapQ[ip])*mask[ip];
 	}
 	
 	// Compute SHT, multiply by 2*sqrt((l+1)!(l-2)!/((l-1)!(l+2)!)) and add to alm_out
 	map2alm_spin_iter(job,papQ,papU,plmsG,plmsC,1,iter);
-	for(size_t l=0;l<=lmax;l++) {
+	
+	for(int l=0;l<=lmax;l++) {
 		if(l>1)
-		  f_l[l]=2./sqrt((l+2.)*(l-1.));
+		  f_l[l]=2./sqrt(((double)l+2.)*((double)l-1.));
 		else
 		  f_l[l]=0;
 	}	
 	
 	#pragma omp parallel for
-	for (size_t m=0; m<=mmax; m++) {
-		for (size_t l=m; l<=lmax; l++) {
-			// almsG(l,m)+=f_l[l]*plmsG(l,m);
-			almsC(l,m)+=f_l[l]*plmsC(l,m);
+	for (int m=0; m<=mmax; m++) {
+		for (int l=m; l<=lmax; l++) {
+			almsG(l,m)+=plmsG(l,m)*f_l[l];
+			almsC(l,m)+=plmsC(l,m)*f_l[l];
 		}
 	}
 	
 	// Compute spin-2 mask
-	for(size_t l=0;l<=lmax;l++) { //The extra minus sign is because of the scalar SHT below (E-mode def for s=0)
+	for(int l=0;l<=lmax;l++) { //The extra minus sign is because of the scalar SHT below (E-mode def for s=0)
 		if(l>1)
-			f_l[l]=-sqrt((l+2.)*(l-1.));
+			f_l[l]=-sqrt(((double)l-1.)*((double)l+2.));
 		else
 			f_l[l]=0;
 	}
 	
-	#pragma omp parallel for
-	for (size_t m=0; m<=mmax; m++) {
-		for (size_t l=m; l<=lmax; l++) {
-			wlmsG(l,m)=f_l[l]*wlmsG(l,m);
-		}
-	}
-	
+	// #pragma omp parallel for
+	// for (size_t m=0; m<=mmax; m++) {
+		// for (size_t l=m; l<=lmax; l++) {
+			// wlmsG(l,m)=wlmsG(l,m)*f_l[l];
+		// }
+	// }
+	wlmsG.ScaleL(f_l);
+	wlmsC.ScaleL(f_l);
 	job.alm2map_spin(&wlmsG(0,0),&wlmsC(0,0),&wapQ[0],&wapU[0],2,false);
-	
+
 	// Product with spin-2 mask
 	#pragma omp parallel for
-	for(size_t ip=0;ip<papQ.Npix();ip++) {
-		papQ[ip]=wapQ[ip]*mapQ[ip]+wapU[ip]*mapU[ip];
-		papU[ip]=wapQ[ip]*mapU[ip]-wapU[ip]*mapQ[ip];
+	for(int ip=0;ip<papQ.Npix();ip++) {
+		papQ[ip]=(wapQ[ip]*mapQ[ip]+wapU[ip]*mapU[ip])*mask[ip];
+		papU[ip]=(wapQ[ip]*mapU[ip]-wapU[ip]*mapQ[ip])*mask[ip];
 	}
 	
 	// Compute SHT, multiply by sqrt((l-2)!/(l+2)!) and add to alm_out
-	map2alm_spin_iter(job,papQ,papU,plmsG,plmsC,0,iter);
-	for(size_t l=0;l<=lmax;l++) {
+	map2alm_iter(papQ, plmsG, iter, rwghts);
+	map2alm_iter(papU, plmsC, iter, rwghts);
+	
+	for(int l=0;l<=lmax;l++) {
 		if(l>1)
-			f_l[l]=1./sqrt((l+2.)*(l+1.)*l*(l-1.));
+			f_l[l]=1./sqrt(((double)l+2.)*((double)l+1.)*(double)l*((double)l-1.));
 		else
 			f_l[l]=0;
 	}
 	#pragma omp parallel for
-	for (size_t m=0; m<=mmax; m++) {
-		for (size_t l=m; l<=lmax; l++) {
-			// almsG(l,m)+=f_l[l]*plmsG(l,m);
-			almsC(l,m)+=f_l[l]*plmsC(l,m);
+	for (int m=0; m<=mmax; m++) {
+		for (int l=m; l<=lmax; l++) {
+			almsG(l,m)+=plmsG(l,m)*f_l[l];
+			almsC(l,m)+=plmsC(l,m)*f_l[l];
 		}
 	}
 	

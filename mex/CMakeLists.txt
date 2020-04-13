@@ -6,7 +6,7 @@ project(healmex CXX)
 set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS}
     "-I/n/home01/dbeck/software/healmex/healpix-3.50/src/healpix/src/cxx/libsharp -g -O2 -fexceptions -fno-omit-frame-pointer")
 set(CMAKE_SHARED_LINKER_FLAGS ${CMAKE_SHARED_LINKER_FLAGS}
-    "-Wl,--no-undefined -static-libstdc++")
+    "-Wl,--no-undefined -static-libstdc++ -L$CFITSIO_LIB -lcfitsio")
 
 set(MATLAB_FIND_DEBUG 1)
 find_package(Matlab 9.4 REQUIRED
