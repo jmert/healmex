@@ -19,78 +19,80 @@ if (NOT WIN32)
     string(REPLACE ":" ";" CMAKE_LIBRARY_PATH "${CMAKE_LIBRARY_PATH}")
 endif()
 
-include(ExternalProject)
 find_package(OpenMP)
-find_package(PkgConfig REQUIRED)
-
-# The HEALPix package does its own search, but we can do a pkg-config search
-# here during config to error out earlier.
-pkg_search_module(CFITSIO REQUIRED cfitsio)
-
-# Basic information required to download and compile the official HEALPix
-# source code.
-#
-# Note that both VERSION and DATE must be updated in tandem with each release
-# update.
-set(HEALPIX_VERSION 3.60)
-set(HEALPIX_DATE 2019Dec18)
-set(HEALPIX_MD5HASH 9b51b2fc919f4e70076d296826eebee0)
-# These should only need to be editted if the base URLs change.
-set(HEALPIX_PKG healpix-${HEALPIX_VERSION})
-set(HEALPIX_BASEURL https://managedway.dl.sourceforge.net/project/healpix/)
-set(HEALPIX_FILEURL Healpix_${HEALPIX_VERSION}/Healpix_${HEALPIX_VERSION}_${HEALPIX_DATE}.tar.gz)
-
 if (OPENMP_FOUND)
     set(HEALPIX_WITH_OPENMP "--enable-openmp")
 else()
     set(HEALPIX_WITH_OPENMP "--disable-openmp")
 endif()
 
-# Because we only want to build the src/cxx/autotools directory, we separate
-# the build process into two pieces:
-#   1. Download, unpack, and patch (if needed) the sources.
-#   2. In a second step, perform the build, with the dependency configured
-#      for a base path within the first target's expanded source tree.
-ExternalProject_Add(healpix_download
-    URL ${HEALPIX_BASEURL}${HEALPIX_FILEURL}
-    URL_HASH MD5=${HEALPIX_MD5HASH}
-    PREFIX ${HEALPIX_PKG}
-    SOURCE_DIR "${HEALPIX_PKG}/src/healpix"
-    PATCH_COMMAND ""
-    CONFIGURE_COMMAND ""
-    BUILD_COMMAND ""
-    INSTALL_COMMAND ""
-)
-ExternalProject_Add(libsharp
-    PREFIX ${HEALPIX_PKG}
-    SOURCE_DIR "${HEALPIX_PKG}/src/healpix/src/common_libraries/libsharp"
-    BUILD_IN_SOURCE YES
-    CONFIGURE_COMMAND
-        ./configure --prefix=<INSTALL_DIR> --disable-shared --with-pic ${HEALPIX_WITH_OPENMP}
-    DOWNLOAD_COMMAND ""
-    BUILD_COMMAND
-        $(MAKE)
-    INSTALL_COMMAND
-        $(MAKE) install
-)
-ExternalProject_Add(healpix
-    PREFIX ${HEALPIX_PKG}
-    SOURCE_DIR "${HEALPIX_PKG}/src/healpix/src/cxx"
-    BUILD_IN_SOURCE YES
-    CONFIGURE_COMMAND
-        ${CMAKE_COMMAND} -E env "PKG_CONFIG_PATH=$ENV{PKG_CONFIG_PATH}:<INSTALL_DIR>/lib/pkgconfig"
-        ./configure --prefix=<INSTALL_DIR> --disable-shared --with-pic ${HEALPIX_WITH_OPENMP}
-    DOWNLOAD_COMMAND ""
-    BUILD_COMMAND
-        $(MAKE)
-    INSTALL_COMMAND
-        $(MAKE) install
-)
-add_dependencies(libsharp healpix_download)
-add_dependencies(healpix libsharp healpix_download)
-ExternalProject_Get_Property(libsharp install_dir)
-ExternalProject_Get_Property(healpix install_dir)
-set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} ${install_dir})
+# Basic information required to download and compile the official HEALPix
+# source code.
+#
+# Note that *_VERSION, *_DATE, and *_MD5HASH must be updated in tandem with
+# each release update.
+set(HEALPIX_VERSION 3.60)
+set(HEALPIX_DATE 2019Dec18)
+set(HEALPIX_MD5HASH 9b51b2fc919f4e70076d296826eebee0)
+set(HEALPIX_FILEURL Healpix_${HEALPIX_VERSION}/Healpix_${HEALPIX_VERSION}_${HEALPIX_DATE}.tar.gz)
+set(HEALPIX_PKG healpix-${HEALPIX_VERSION})
+set(HEALPIX_BASEURL https://managedway.dl.sourceforge.net/project/healpix/)
+
+include(ExternalProject)
+find_package(PkgConfig REQUIRED)
+pkg_search_module(CFITSIO REQUIRED cfitsio)
+# Search for system-provided libsharp and healpix_cxx:
+pkg_search_module(LIBSHARP libsharp)
+pkg_search_module(HEALPIX_CXX healpix_cxx>=${HEALPIX_VERSION})
+
+if ((NOT LIBSHARP_FOUND) OR (NOT HEALPIX_CXX_FOUND))
+    set(HEALPIX_SOURCE_DIR "${HEALPIX_PKG}/src/healpix")
+    set(HEALPIX_CONFIGURE_COMMAND "\
+        ${CMAKE_COMMAND} -E env \"PKG_CONFIG_PATH=$ENV{PKG_CONFIG_PATH}:<INSTALL_DIR>/lib/pkgconfig\" \
+        ./configure --prefix=<INSTALL_DIR> --disable-shared --with-pic ${HEALPIX_WITH_OPENMP}")
+
+    # Because we only want to build the src/cxx directory, we separate the build
+    # process into two pieces:
+    #   1. Download, unpack, and patch (if needed) the sources.
+    #   2. In a second step, perform the build, with the dependency configured
+    #      for a base path within the first target's expanded source tree.
+    ExternalProject_Add(healpix_download
+        URL ${HEALPIX_BASEURL}${HEALPIX_FILEURL}
+        URL_HASH MD5=${HEALPIX_MD5HASH}
+        PREFIX ${HEALPIX_PKG}
+        SOURCE_DIR "${HEALPIX_SOURCE_DIR}"
+        PATCH_COMMAND ""
+        CONFIGURE_COMMAND ""
+        BUILD_COMMAND ""
+        INSTALL_COMMAND ""
+    )
+    ExternalProject_Add(libsharp
+        PREFIX ${HEALPIX_PKG}
+        SOURCE_DIR "${HEALPIX_SOURCE_DIR}/src/common_libraries/libsharp"
+        BUILD_IN_SOURCE YES
+        CONFIGURE_COMMAND
+            ${CMAKE_COMMAND} -E env "PKG_CONFIG_PATH=$ENV{PKG_CONFIG_PATH}:<INSTALL_DIR>/lib/pkgconfig"
+            ./configure --prefix=<INSTALL_DIR> --disable-shared --with-pic ${HEALPIX_WITH_OPENMP}
+        BUILD_COMMAND $(MAKE)
+        INSTALL_COMMAND $(MAKE) install
+    )
+    ExternalProject_Add(healpix
+        PREFIX ${HEALPIX_PKG}
+        SOURCE_DIR "${HEALPIX_SOURCE_DIR}/src/cxx"
+        BUILD_IN_SOURCE YES
+        CONFIGURE_COMMAND
+            ${CMAKE_COMMAND} -E env "PKG_CONFIG_PATH=$ENV{PKG_CONFIG_PATH}:<INSTALL_DIR>/lib/pkgconfig"
+            ./configure --prefix=<INSTALL_DIR> --disable-shared --with-pic ${HEALPIX_WITH_OPENMP}
+        BUILD_COMMAND $(MAKE)
+        INSTALL_COMMAND $(MAKE) install
+    )
+    add_dependencies(libsharp healpix_download)
+    add_dependencies(healpix libsharp healpix_download)
+
+    ExternalProject_Get_Property(libsharp install_dir)
+    ExternalProject_Get_Property(healpix install_dir)
+    set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} ${install_dir})
+endif()
 
 # Since we need to have the libhealpix_cxx built and installed for the
 # next step to be configurable itself, we have to run the MEX build as an
@@ -103,7 +105,9 @@ ExternalProject_Add(healmex
         "-DCMAKE_INSTALL_PREFIX:PATH=${CMAKE_BINARY_DIR}"
         "-DCMAKE_MODULE_PATH:PATH=${CMAKE_MODULE_PATH}"
 )
-add_dependencies(healmex libsharp healpix)
+if ((NOT LIBSHARP_FOUND) OR (NOT HEALPIX_CXX_FOUND))
+    add_dependencies(healmex libsharp healpix)
+endif()
 
 if (ASCLASS)
     set(PKGBASE "")
