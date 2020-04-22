@@ -34,9 +34,9 @@ pkg_search_module(CFITSIO REQUIRED cfitsio)
 #
 # Note that both VERSION and DATE must be updated in tandem with each release
 # update.
-set(HEALPIX_VERSION 3.50)
-set(HEALPIX_DATE 2018Dec10)
-set(HEALPIX_MD5HASH ed7c9a3d7593577628ed1286fa7a9250)
+set(HEALPIX_VERSION 3.60)
+set(HEALPIX_DATE 2019Dec18)
+set(HEALPIX_MD5HASH 9b51b2fc919f4e70076d296826eebee0)
 # These should only need to be editted if the base URLs change.
 set(HEALPIX_PKG healpix-${HEALPIX_VERSION})
 set(HEALPIX_BASEURL https://managedway.dl.sourceforge.net/project/healpix/)
@@ -63,20 +63,34 @@ ExternalProject_Add(healpix_download
     BUILD_COMMAND ""
     INSTALL_COMMAND ""
 )
-ExternalProject_Add(healpix
+ExternalProject_Add(libsharp
     PREFIX ${HEALPIX_PKG}
-    SOURCE_DIR "${HEALPIX_PKG}/src/healpix/src/cxx/autotools"
+    SOURCE_DIR "${HEALPIX_PKG}/src/healpix/src/common_libraries/libsharp"
     BUILD_IN_SOURCE YES
     CONFIGURE_COMMAND
-        autoreconf -i && ./configure --prefix=<INSTALL_DIR>
-            --disable-shared --with-pic ${HEALPIX_WITH_OPENMP}
+        ./configure --prefix=<INSTALL_DIR> --disable-shared --with-pic ${HEALPIX_WITH_OPENMP}
     DOWNLOAD_COMMAND ""
     BUILD_COMMAND
         $(MAKE)
     INSTALL_COMMAND
-        make install
+        $(MAKE) install
 )
-add_dependencies(healpix healpix_download)
+ExternalProject_Add(healpix
+    PREFIX ${HEALPIX_PKG}
+    SOURCE_DIR "${HEALPIX_PKG}/src/healpix/src/cxx"
+    BUILD_IN_SOURCE YES
+    CONFIGURE_COMMAND
+        ${CMAKE_COMMAND} -E env "PKG_CONFIG_PATH=$ENV{PKG_CONFIG_PATH}:<INSTALL_DIR>/lib/pkgconfig"
+        ./configure --prefix=<INSTALL_DIR> --disable-shared --with-pic ${HEALPIX_WITH_OPENMP}
+    DOWNLOAD_COMMAND ""
+    BUILD_COMMAND
+        $(MAKE)
+    INSTALL_COMMAND
+        $(MAKE) install
+)
+add_dependencies(libsharp healpix_download)
+add_dependencies(healpix libsharp healpix_download)
+ExternalProject_Get_Property(libsharp install_dir)
 ExternalProject_Get_Property(healpix install_dir)
 set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} ${install_dir})
 
@@ -91,7 +105,7 @@ ExternalProject_Add(healmex
         "-DCMAKE_INSTALL_PREFIX:PATH=${CMAKE_BINARY_DIR}"
         "-DCMAKE_MODULE_PATH:PATH=${CMAKE_MODULE_PATH}"
 )
-add_dependencies(healmex healpix)
+add_dependencies(healmex libsharp healpix)
 
 if (ASCLASS)
     set(PKGBASE "")
