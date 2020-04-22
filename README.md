@@ -9,7 +9,7 @@ A package providing Matlab bindings to the [HEALPix][healpix] C++ package.
 - CMake 3.12.0+
 - `pkg-config` (or `pkgconf`)
 - Internet connection (to download HEALPix sources)
-  - HEALPix v3.40 is used
+  - HEALPix v3.60 is used
 - HEALPix's build requirements, such as:
   - GNU Autotools (`autoreconf`, `make`, etc)
   - CFITSIO
