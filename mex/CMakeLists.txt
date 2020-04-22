@@ -14,8 +14,8 @@ find_package(Matlab 9.4 REQUIRED
 find_package(OpenMP)
 find_package(PkgConfig REQUIRED)
 
-# HEALPix doesn't declare its need to have cfitsio linked
 pkg_search_module(HEALPIX_CXX REQUIRED IMPORTED_TARGET healpix_cxx)
+pkg_search_module(LIBSHARP REQUIRED IMPORTED_TARGET libsharp)
 
 set(SOURCES libhealmex.cpp)
 
@@ -28,7 +28,8 @@ set_target_properties(libhealmex PROPERTIES
     NO_SYSTEM_FROM_IMPORTED TRUE)
 target_link_libraries(libhealmex
     OpenMP::OpenMP_CXX
-    PkgConfig::HEALPIX_CXX)
+    PkgConfig::HEALPIX_CXX
+    PkgConfig::LIBSHARP)
 
 install(TARGETS libhealmex DESTINATION matlab)
 
