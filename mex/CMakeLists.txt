@@ -1,5 +1,5 @@
 # See parent directory for notes on version minimum
-cmake_minimum_required(VERSION 3.9.0)
+cmake_minimum_required(VERSION 3.12.0)
 cmake_policy(SET CMP0017 NEW) # https://cmake.org/cmake/help/v3.11/policy/CMP0017.html
 project(healmex CXX)
 

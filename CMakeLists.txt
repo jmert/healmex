@@ -2,7 +2,9 @@
 #   3.6.0 - IMPORTED_TARGET argument to pkg_search_modules in FindPkgConfig.cmake
 #   3.8.0 - CXX_STANDARD 17 available
 #   3.9.0 - imported target in FindOpenMP.cmake
-cmake_minimum_required(VERSION 3.9.0)
+#   3.12.0 - Do not ignore default library search paths in pkg_search_module
+#            (see https://gitlab.kitware.com/cmake/cmake/-/merge_requests/2027)
+cmake_minimum_required(VERSION 3.12.0)
 cmake_policy(SET CMP0017 NEW) # https://cmake.org/cmake/help/v3.11/policy/CMP0017.html
 
 project(healmex CXX)
