@@ -1,5 +1,5 @@
-function alms = map2alm_iter(nside, order, map, lmax, mmax, rwghts, iter)
-% alms = map2alm_iter(nside, order, map, lmax, mmax, rwghts, iter)
+function alms = hpx_map2alm(nside, order, map, lmax, mmax, rwghts, iter)
+% alms = hpx_map2alm(nside, order, map, lmax, mmax, rwghts, iter)
 %
 % Computes the spherical harmonic transform of map and returns the harmonic
 % coefficients alms.

@@ -1,5 +1,5 @@
-function map = alm2map(lmax, mmax, alms, nside, order)
-% map = alm2map(lmax, mmax, alms, nside, order)
+function map = hpx_alm2map(lmax, mmax, alms, nside, order)
+% map = hpx_alm2map(lmax, mmax, alms, nside, order)
 %
 % Synthesizes a map at Nside = nside and pixel ordering order from the set of
 % spherical harmonic coefficients alms.
