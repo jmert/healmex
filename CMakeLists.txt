@@ -2,19 +2,12 @@
 #   3.6.0 - IMPORTED_TARGET argument to pkg_search_modules in FindPkgConfig.cmake
 #   3.8.0 - CXX_STANDARD 17 available
 #   3.9.0 - imported target in FindOpenMP.cmake
-#   3.12.0 - Do not ignore default library search paths in pkg_search_module
-#            (see https://gitlab.kitware.com/cmake/cmake/-/merge_requests/2027)
-cmake_minimum_required(VERSION 3.12.0)
+cmake_minimum_required(VERSION 3.9.0)
 cmake_policy(SET CMP0017 NEW) # https://cmake.org/cmake/help/v3.11/policy/CMP0017.html
 
 project(healmex CXX)
 option(ASCLASS "install healmex as a Matlab class" ON)
 option(USE_SYSTEM_HEALPIX "use OS healpix library (if present)" ON)
-
-# cmake/FindMatlab.cmake can be deleted and this line removed once
-# cmake_minimum_required bumped beyond 3.14.0 where FindMatlab.cmake
-# becomes fully R2018a-aware and C++ Data API compatible.
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/")
 
 # Include environment's paths library searches
 set(CMAKE_LIBRARY_PATH ${CMAKE_LIBRARY_PATH} $ENV{LIBRARY_PATH})
@@ -41,8 +34,14 @@ set(HEALPIX_FILEURL Healpix_${HEALPIX_VERSION}/Healpix_${HEALPIX_VERSION}_${HEAL
 set(HEALPIX_PKG healpix-${HEALPIX_VERSION})
 set(HEALPIX_BASEURL https://managedway.dl.sourceforge.net/project/healpix/)
 
-include(ExternalProject)
-find_package(PkgConfig REQUIRED)
+# Before v3.12, ignored default library search paths in pkg_search_module.
+# (see https://gitlab.kitware.com/cmake/cmake/-/merge_requests/2027)
+# Set NO_CMAKE_PATH to exclude the provided ./cmake/* files.
+if (${CMAKE_VERSION} VERSION_LESS 3.12.0)
+    set(FIND_PKGCONFIG CONFIGS FindPkgConfig.cmake NO_CMAKE_PATH PATHS ${CMAKE_SOURCE_DIR}/cmake/)
+endif()
+find_package(PkgConfig REQUIRED ${FIND_PKGCONFIG})
+
 pkg_search_module(CFITSIO REQUIRED cfitsio)
 
 if (USE_SYSTEM_HEALPIX)
@@ -51,6 +50,7 @@ if (USE_SYSTEM_HEALPIX)
     pkg_search_module(HEALPIX_CXX healpix_cxx>=${HEALPIX_VERSION})
 endif()
 
+include(ExternalProject)
 if ((NOT LIBSHARP_FOUND) OR (NOT HEALPIX_CXX_FOUND))
     set(HEALPIX_SOURCE_DIR "${HEALPIX_PKG}/src/healpix")
 
