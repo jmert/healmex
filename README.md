@@ -6,7 +6,7 @@ A package providing Matlab bindings to the [HEALPix][healpix] C++ package.
 
 - GCC 7+ (or a compiler which supports C++17's structured bindings)
 - Matlab R2018a+
-- CMake 3.12.0+
+- CMake 3.9.0+
 - `pkg-config` (or `pkgconf`)
 - Internet connection (to download HEALPix sources)
   - HEALPix v3.60 is used
