@@ -1,5 +1,5 @@
-function [almsT,almsG,almsC]=rotate_alm_pol(transform, almsT, almsG, almsC, lmax, mmax)
-% [almsT,almsG,almsC]=rotate_alm_pol(transform, almsT, almsG, almsC, lmax, mmax)
+function [almsT,almsG,almsC]=hpx_rotate_alm_pol(transform, almsT, almsG, almsC, lmax, mmax)
+% [almsT,almsG,almsC]=hpx_rotate_alm_pol(transform, almsT, almsG, almsC, lmax, mmax)
 %
 % Performs coordinate transformation (e.g. rotations on the sphere) in
 % harmonic space. Exactly same as rotate_alm(), but performs rotations on

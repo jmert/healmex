@@ -1,5 +1,5 @@
-function alms=rotate_alm(transform, alms, lmax, mmax)
-% alms=rotate_alm(transform, alms, lmax, mmax)
+function alms=hpx_rotate_alm(transform, alms, lmax, mmax)
+% alms=hpx_rotate_alm(transform, alms, lmax, mmax)
 %
 % Performs coordinate transformation (e.g. rotations on the sphere) in
 % harmonic space.

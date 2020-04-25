@@ -8,14 +8,25 @@ set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS}
 set(CMAKE_SHARED_LINKER_FLAGS ${CMAKE_SHARED_LINKER_FLAGS}
     "-Wl,--no-undefined -static-libstdc++ -L$CFITSIO_LIB -lcfitsio")
 
-set(MATLAB_FIND_DEBUG 1)
-find_package(Matlab 9.4 REQUIRED
-    COMPONENTS DATAARRAY_LIBRARY)
-find_package(OpenMP)
-find_package(PkgConfig REQUIRED)
+# v3.12.0 fixes an error in dealin with default library search paths in pkg_search_module.
+# (see https://gitlab.kitware.com/cmake/cmake/-/merge_requests/2027)
+if (${CMAKE_VERSION} VERSION_LESS 3.12.0)
+    set(FIND_PKGCONFIG CONFIGS FindPkgConfig.cmake NO_CMAKE_PATH PATHS ${CMAKE_SOURCE_DIR}/cmake/)
+endif()
+find_package(PkgConfig REQUIRED ${FIND_PKGCONFIG})
 
-# HEALPix doesn't declare its need to have cfitsio linked
+# v3.14.0 is the first version which becomes fully R2018a-aware with the
+# C++ Data API handled.
+set(MATLAB_FIND_DEBUG 1)
+if (${CMAKE_VERSION} VERSION_LESS 3.14.0)
+    set(FIND_MATLAB CONFIGS FindMatlab.cmake NO_CMAKE_PATH PATHS ${CMAKE_SOURCE_DIR}/cmake/)
+endif()
+find_package(Matlab REQUIRED ${FIND_MATLAB})
+
+find_package(OpenMP)
+
 pkg_search_module(HEALPIX_CXX REQUIRED IMPORTED_TARGET healpix_cxx)
+pkg_search_module(LIBSHARP REQUIRED IMPORTED_TARGET libsharp)
 
 set(SOURCES libhealmex.cpp)
 
@@ -29,7 +40,7 @@ set_target_properties(libhealmex PROPERTIES
 target_link_libraries(libhealmex
     OpenMP::OpenMP_CXX
     PkgConfig::HEALPIX_CXX
-)
+    PkgConfig::LIBSHARP)
 
 install(TARGETS libhealmex DESTINATION matlab)
 
