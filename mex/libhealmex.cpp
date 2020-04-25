@@ -84,8 +84,8 @@ enum libhealpix_mex_calls {
     id_rotate_alm       = 65,
     id_rotate_alm_pol   = 66,
     id_apodize_mask     = 68,
-	id_shrink_mask      = 69,
-	id_smooth_mask      = 70
+    id_shrink_mask      = 69,
+    id_smooth_mask      = 70
 };
 
 class MexFunction : public matlab::mex::Function {
@@ -1115,7 +1115,7 @@ DISPATCH_FN(shrink_mask) {
 	#pragma omp for schedule(dynamic)
 	for(int ip=0;ip<npix;ip++) {
 		if(map[ip]<=0) {
-			base.query_disc(pointing(base.pix2vec(ip)),2.5*radiusrad,listpix);
+			base.query_disc(pointing(base.pix2vec(ip)),radiusrad,listpix);
 			int n = listpix.size();
 			for(int i=0;i<n;i++) {
 				for(int j=listpix.ivbegin(i);j<listpix.ivend(i);j++) {
