@@ -68,7 +68,8 @@ enum libhealpix_mex_calls {
     id_alm2cl           = 61,
     id_almxfl           = 62,
     id_rotate_alm       = 65,
-    id_rotate_alm_pol   = 66
+    id_rotate_alm_pol   = 66,
+    id_scan_rings_observed = 1000
 };
 
 class MexFunction : public matlab::mex::Function {
@@ -337,6 +338,13 @@ public:
                 mex_rotate_alm_pol(outputs, inputs);
                 break;
 
+            case id_scan_rings_observed:
+                CHECK_NINOUT("scan_rings_observed", 1, 1);
+                CHECK_INPUT_DOUBLE("scan_rings_observed", "map", 1);
+                CHECK_INPUT_VECTOR("scan_rings_observed", "map", 1);
+                mex_scan_rings_observed(outputs, inputs);
+                break;
+
             default:
                 error("Unhandled dispatch type %d", dispatch);
         }
@@ -368,6 +376,9 @@ private:
     DISPATCH_FN(almxfl);
     DISPATCH_FN(rotate_alm);
     DISPATCH_FN(rotate_alm_pol);
+
+    /* Utility functions */
+    DISPATCH_FN(scan_rings_observed);
 
     #undef DISPATCH_FN
 
@@ -457,6 +468,42 @@ int64_t alm_getn(int64_t lmax, int64_t mmax)
     if (mmax < 0 || lmax < mmax)
         return 0;
     return ((mmax + 1) * (mmax + 2)) / 2 + (mmax + 1) * (lmax - mmax);
+}
+
+// Scans a map vector to determine observed rings and indicates as observed
+// or not as boolean mask in output return array ring.
+//   - map must be a full-sky map vector (i.e. length 12*nside*nside)
+//   - ring must be a vector of length (4*nside-1)
+void _scan_rings_observed(int64_t nside, const double* map, bool* ring) {
+    const int64_t npix  = 12 * nside * nside;
+    const int64_t nring = 4 * nside - 1;
+    // Pixel offset to beginning of each ring (in northern hemisphere)
+    ssize_t base = 0;
+    // N.B.: Ring numbering traditionally 1-based in HEALPix
+    for (ssize_t rr = 1; rr <= 2*nside; ++rr) {
+        bool n_occupied = false;
+        bool s_occupied = false;
+
+        // Polar cap rings are the first (and last) nside rings.
+        // Equitorial belt is (2*nside-1) rings; the equator is considered
+        //   part of the northern hemisphere's nside rings, leaving (nside-1)
+        //   for the southern hemisphere.
+
+        // Within polar cap, each ring is 4*rr long; equitorial belt is 4*nside.
+        ssize_t ringlen = (rr <= nside) ? 4*rr : 4*nside;
+        for (ssize_t pp = 0; pp < ringlen; ++pp) {
+            double nval = map[base + pp];        // Northern hemisphere
+            n_occupied |= nval != 0 && !isnan(nval);
+
+            double sval = map[npix-1-base - pp]; // Southern hemisphere
+            s_occupied |= sval != 0 && !isnan(sval);
+        }
+        ring[rr-1]     = n_occupied;
+        if (rr < 2*nside) {
+            ring[nring-rr] = s_occupied;
+        }
+        base += ringlen;
+    }
 }
 
 /* Externally callable function implementations */
@@ -925,4 +972,14 @@ DISPATCH_FN(rotate_alm_pol) {
     outputs[0] = factory.createArrayFromBuffer({len_almsT}, move(buf_almsT));
     outputs[1] = factory.createArrayFromBuffer({len_almsG}, move(buf_almsG));
     outputs[2] = factory.createArrayFromBuffer({len_almsC}, move(buf_almsC));
+}
+
+DISPATCH_FN(scan_rings_observed) {
+    auto [buf_map, len_map] = bufferlen<double>(inputs[1]);
+    auto nside = static_cast<int>(sqrt(len_map / 12));
+
+    auto buf_rings = factory.createBuffer<bool>(4*nside-1);
+
+    _scan_rings_observed(nside, buf_map.get(),  buf_rings.get());
+    outputs[0] = factory.createArrayFromBuffer({4*nside-1}, move(buf_rings));
 }
