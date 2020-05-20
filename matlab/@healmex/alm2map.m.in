@@ -8,8 +8,9 @@ function map = alm2map(alms, nside, order, lmax, mmax)
 %   alms    The spherical harmonic coefficients of map. If map is Nx1, then
 %           alms is an Mx1 vector of scalar (non-spin) coefficients (i.e.
 %           temperature). If map is Nx3, the column 1 is the scalar (non-spin)
-%           coefficients, and columsn 2 and 3 are the gradient and curl,
-%           respectively, spin-2 transforms.
+%           coefficients, and columns 2 and 3 are the gradient and curl,
+%           respectively, spin-2 transforms. If map is Nx2, columns 1 and 2 
+%           are the gradient and curl, respectively, spin-2 transforms.
 %
 %   nside   HEALPix Nside of output map to synthesize.
 %
@@ -43,11 +44,14 @@ function map = alm2map(alms, nside, order, lmax, mmax)
 
   if size(alms, 2) == 1
     map = @CLASSPREFIX@hpx_alm2map(lmax, mmax, alms, nside, order);
+  elseif size(alms, 2) == 2
+    [map(:,1),map(:,2)] = @CLASSPREFIX@hpx_alm2map_polonly(...
+        lmax, mmax, alms(:,1), alms(:,2), nside, order);
   elseif size(alms, 2) == 3
     [map(:,1),map(:,2),map(:,3)] = @CLASSPREFIX@hpx_alm2map_pol(...
         lmax, mmax, alms(:,1), alms(:,2), alms(:,3), nside, order);
   else
-    error('alms: Expected size 1 or 3 in second dimension, got %d', ...
+    error('alms: Expected size 1, 2 or 3 in second dimension, got %d', ...
         size(alms, 2));
   end
 end
