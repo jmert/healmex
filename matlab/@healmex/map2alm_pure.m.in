@@ -1,4 +1,4 @@
-function alms = map2alm_pure(map, wmap, order, lmax, mmax, nside, niter)
+function alms = map2alm_pure(map, wmap, order, lmax, mmax, nside, niter, pureE)
 % alms = map2alm_pure(map, wmap, order, lmax, mmax, nside, niter)
 %
 % INPUTS
@@ -50,6 +50,11 @@ function alms = map2alm_pure(map, wmap, order, lmax, mmax, nside, niter)
     mmax = lmax;
   end
 
+  if ~exist('pureE', 'var') || isempty(pureE)
+    pureE = false;
+  end
+
+
   % TODO: Allow real ring weights.
   rwghts = ones(4 * nside - 1, 1);
 
@@ -61,7 +66,7 @@ function alms = map2alm_pure(map, wmap, order, lmax, mmax, nside, niter)
         lmax, mmax, rwghts, niter);
     [alms(:,2),alms(:,3)] = @CLASSPREFIX@hpx_map2alm_pure(...
         nside, order, map(:,2), map(:,3), wmap(:,2), ...
-        lmax, mmax, rwghts, niter);
+        lmax, mmax, rwghts, niter, pureE);
   else
     error('map: Expected size 1 or 3 in second dimension, got %d', ...
         size(map, 2));

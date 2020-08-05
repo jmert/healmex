@@ -13,12 +13,12 @@ classdef healmex < matlab.mixin.CustomDisplay
     ipix = ang2pix(nside, order, theta, phi)
 
     alms = map2alm(map, order, lmax, mmax, nside, niter)
-    alms = map2alm_pure(map, wmap, order, lmax, mmax, nside, niter)
+    alms = map2alm_pure(map, wmap, order, lmax, mmax, nside, niter, pureE)
     map = alm2map(alms, nside, order, lmax, mmax)
     alms = hpx_map2alm(nside, order, map, lmax, mmax, rwghts, iter)
     map = hpx_alm2map(lmax, mmax, alms, nside, order)
     [almsT,almsG,almsC] = hpx_map2alm_pol(nside, order, mapT, mapQ, mapU, lmax, mmax, rwghts, iter)
-    [almsG,almsC] = hpx_map2alm_pure(nside, order, mapQ, mapU, mapW, lmax, mmax, rwghts, iter)
+    [almsG,almsC] = hpx_map2alm_pure(nside, order, mapQ, mapU, mapW, lmax, mmax, rwghts, iter, pureE)
     [mapT,mapQ,mapU] = hpx_alm2map_pol(lmax, mmax, almsT, almsG, almsC, nside, order)
     [mapQ,mapU] = hpx_alm2map_polonly(lmax, mmax, almsG, almsC, nside, order)
 
