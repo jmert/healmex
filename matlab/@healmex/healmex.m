@@ -21,6 +21,9 @@ classdef healmex < matlab.mixin.CustomDisplay
     [almsG,almsC] = hpx_map2alm_pure(nside, order, mapQ, mapU, mapW, lmax, mmax, rwghts, iter, pureE)
     [mapT,mapQ,mapU] = hpx_alm2map_pol(lmax, mmax, almsT, almsG, almsC, nside, order)
     [mapQ,mapU] = hpx_alm2map_polonly(lmax, mmax, almsG, almsC, nside, order)
+	
+    [mapQ,mapU] = hpx_smoothing(mapQ, mapU, fl, order, lmax, mmax, nside, rwghts, niter)
+    map = smoothing(map, fl, mask, order, lmax, mmax, nside, niter)
 
     [lmax, mmax] = alm_getlmmax(alms, lmax, mmax)
     [l,m] = alm_getlm(lmax,idx)

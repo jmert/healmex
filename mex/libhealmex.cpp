@@ -78,14 +78,15 @@ enum libhealpix_mex_calls {
     id_map2alm_pure     = 67,
     id_alm2map          = 55,
     id_alm2map_pol      = 56,
-    id_alm2map_polonly  = 71,
     id_alm2cl           = 61,
     id_almxfl           = 62,
     id_rotate_alm       = 65,
     id_rotate_alm_pol   = 66,
     id_apodize_mask     = 68,
     id_shrink_mask      = 69,
-    id_smooth_mask      = 70
+    id_smooth_mask      = 70,
+    id_alm2map_polonly  = 71,
+    id_smoothing        = 72,
 };
 
 class MexFunction : public matlab::mex::Function {
@@ -291,7 +292,6 @@ public:
                 CHECK_INPUT_DOUBLE("map2alm_pure", "rwghts", 8);
                 CHECK_INPUT_SCALAR("map2alm_pure", "iter", 9);
                 CHECK_INPUT_INT32("map2alm_pure", "iter", 9);
-                CHECK_INPUT_BOOL("map2alm_pure", "pureE", 10);
                 mex_map2alm_pure(outputs, inputs);
                 break;
 
@@ -359,6 +359,25 @@ public:
                 CHECK_INPUT_COMPLEX64("almxfl", "fl", 4);
                 CHECK_INPUT_VECTOR("almxfl", "fl", 4);
                 mex_almxfl(outputs, inputs);
+                break;
+
+            case id_smoothing:
+                CHECK_NINOUT("smoothing", 9, 2);
+                CHECK_INPUT_SCALAR("smoothing", "nside", 1);
+                CHECK_INPUT_INT64("smoothing", "nside", 1);
+                CHECK_INPUT_CHAR("smoothing", "order", 2);
+                CHECK_INPUT_DOUBLE("smoothing", "mapQ", 3);
+                CHECK_INPUT_DOUBLE("smoothing", "mapU", 4);
+                CHECK_INPUT_DOUBLE("smoothing", "fl", 5);
+                CHECK_INPUT_VECTOR("smoothing", "fl", 5);
+                CHECK_INPUT_SCALAR("smoothing", "lmax", 6);
+                CHECK_INPUT_INT32("smoothing", "lmax", 6);
+                CHECK_INPUT_SCALAR("smoothing", "mmax", 7);
+                CHECK_INPUT_INT32("smoothing", "mmax", 7);
+                CHECK_INPUT_DOUBLE("smoothing", "rwghts", 8);
+                CHECK_INPUT_SCALAR("smoothing", "iter", 9);
+                CHECK_INPUT_INT32("smoothing", "iter", 9);
+                mex_smoothing(outputs, inputs);
                 break;
 
             case id_rotate_alm:
@@ -457,6 +476,7 @@ private:
     DISPATCH_FN(apodize_mask);
     DISPATCH_FN(shrink_mask);
     DISPATCH_FN(smooth_mask);
+    DISPATCH_FN(smoothing);
 
     #undef DISPATCH_FN
 
@@ -832,7 +852,7 @@ DISPATCH_FN(map2alm_pure) {
     auto mmax = scalar<int32_t>(inputs[7]);
     auto [buf_wght, len_wght] = bufferlen<double>(inputs[8]);
     auto iter = scalar<int32_t>(inputs[9]);
-    auto pureE = inputs[10];
+    auto pureE = scalar<bool>(inputs[10]);
 
     auto mapQ = healmap();
     auto mapU = healmap();
@@ -944,7 +964,7 @@ DISPATCH_FN(map2alm_pure) {
 	#pragma omp parallel for
 	for (int m=0; m<=mmax; m++) {
 		for (int l=m; l<=lmax; l++) {
-			if pureE: almsG(l,m)+=plmsG(l,m)*f_l[l];
+			if (pureE==true) almsG(l,m)+=plmsG(l,m)*f_l[l];
 			almsC(l,m)+=plmsC(l,m)*f_l[l];
 		}
 	}
@@ -987,7 +1007,7 @@ DISPATCH_FN(map2alm_pure) {
 	#pragma omp parallel for
 	for (int m=0; m<=mmax; m++) {
 		for (int l=m; l<=lmax; l++) {
-			if pureE: almsG(l,m)+=plmsG(l,m)*f_l[l];
+			if (pureE==true) almsG(l,m)+=plmsG(l,m)*f_l[l];
 			almsC(l,m)+=plmsC(l,m)*f_l[l];
 		}
 	}
@@ -1418,6 +1438,58 @@ DISPATCH_FN(almxfl) {
     }
 
     outputs[0] = factory.createArrayFromBuffer({len_alms}, move(buf_alms));
+}
+
+
+DISPATCH_FN(smoothing) {
+    healpix base = nsideorder(inputs[1], inputs[2]);
+    auto [buf_mapQ, len_mapQ] = bufferlen<double>(inputs[3]);
+    auto [buf_mapU, len_mapU] = bufferlen<double>(inputs[4]);
+    auto [buf_fl,   len_fl]   = bufferlen<double>(inputs[5]);
+    auto lmax = scalar<int32_t>(inputs[6]);
+    auto mmax = scalar<int32_t>(inputs[7]);
+    auto [buf_wght, len_wght] = bufferlen<double>(inputs[8]);
+    auto iter = scalar<int32_t>(inputs[9]);
+
+    auto mapQ = healmap();
+    auto mapU = healmap();
+    {
+        arr<double> tmp(buf_mapQ.get(), len_mapQ);
+        mapQ.Set(tmp, base.Scheme());
+    }
+    {
+        arr<double> tmp(buf_mapU.get(), len_mapU);
+        mapU.Set(tmp, base.Scheme());
+    }
+
+    arr<double> rwghts(buf_wght.get(), len_wght);
+
+    auto nalms = Alm_Base::Num_Alms(lmax, mmax);
+	
+    auto almsG = healalm();
+    auto almsC = healalm();
+	almsG.Set(lmax, mmax);
+	almsC.Set(lmax, mmax);
+		
+	sharp_cxxjob<double> job;
+	job.set_weighted_Healpix_geometry (base.Nside(), &rwghts[0]);
+	job.set_triangular_alm_info (lmax, mmax);
+
+	map2alm_spin_iter(job,mapQ,mapU,almsG,almsC,2,iter);
+	
+	#pragma omp parallel for
+	for (int m=0; m<=mmax; m++) {
+		for (int l=m; l<=lmax; l++) {
+			double fl = l < len_fl ? buf_fl[l] : 0.0;
+			almsG(l,m)*=fl;
+			almsC(l,m)*=fl;
+		}
+	}
+	
+	job.alm2map_spin(&almsG(0,0),&almsC(0,0),&mapQ[0],&mapU[0],2,false);
+
+    outputs[0] = factory.createArrayFromBuffer({len_mapQ}, move(buf_mapQ));
+    outputs[1] = factory.createArrayFromBuffer({len_mapU}, move(buf_mapU));
 }
 
 // Forward declaration of HEALPix's Trafo object. Header isn't installed, so
