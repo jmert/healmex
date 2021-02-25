@@ -87,6 +87,7 @@ enum libhealpix_mex_calls {
     id_smooth_mask      = 70,
     id_alm2map_polonly  = 71,
     id_smoothing        = 72,
+    id_scan_rings_observed = 73
 };
 
 class MexFunction : public matlab::mex::Function {
@@ -278,7 +279,7 @@ public:
                 break;
 				
             case id_map2alm_pure:
-                CHECK_NINOUT("map2alm_pure", 9, 2);
+                CHECK_NINOUT("map2alm_pure", 10, 2);
                 CHECK_INPUT_SCALAR("map2alm_pure", "nside", 1);
                 CHECK_INPUT_INT64("map2alm_pure", "nside", 1);
                 CHECK_INPUT_CHAR("map2alm_pure", "order", 2);
@@ -362,21 +363,25 @@ public:
                 break;
 
             case id_smoothing:
-                CHECK_NINOUT("smoothing", 9, 2);
+                CHECK_NINOUT("smoothing", 11, 2);
                 CHECK_INPUT_SCALAR("smoothing", "nside", 1);
                 CHECK_INPUT_INT64("smoothing", "nside", 1);
                 CHECK_INPUT_CHAR("smoothing", "order", 2);
                 CHECK_INPUT_DOUBLE("smoothing", "mapQ", 3);
                 CHECK_INPUT_DOUBLE("smoothing", "mapU", 4);
-                CHECK_INPUT_DOUBLE("smoothing", "fl", 5);
-                CHECK_INPUT_VECTOR("smoothing", "fl", 5);
-                CHECK_INPUT_SCALAR("smoothing", "lmax", 6);
-                CHECK_INPUT_INT32("smoothing", "lmax", 6);
-                CHECK_INPUT_SCALAR("smoothing", "mmax", 7);
-                CHECK_INPUT_INT32("smoothing", "mmax", 7);
-                CHECK_INPUT_DOUBLE("smoothing", "rwghts", 8);
-                CHECK_INPUT_SCALAR("smoothing", "iter", 9);
-                CHECK_INPUT_INT32("smoothing", "iter", 9);
+                CHECK_INPUT_DOUBLE("smoothing", "fle", 5);
+                CHECK_INPUT_VECTOR("smoothing", "fle", 5);
+                CHECK_INPUT_DOUBLE("smoothing", "flb", 6);
+                CHECK_INPUT_VECTOR("smoothing", "flb", 6);
+                CHECK_INPUT_SCALAR("smoothing", "lmax", 7);
+                CHECK_INPUT_INT32("smoothing", "lmax", 7);
+                CHECK_INPUT_SCALAR("smoothing", "mmax", 8);
+                CHECK_INPUT_INT32("smoothing", "mmax", 8);
+                CHECK_INPUT_SCALAR("smoothing", "mmin", 9);
+                CHECK_INPUT_INT32("smoothing", "mmin", 9);
+                CHECK_INPUT_DOUBLE("smoothing", "rwghts", 10);
+                CHECK_INPUT_SCALAR("smoothing", "iter", 11);
+                CHECK_INPUT_INT32("smoothing", "iter", 11);
                 mex_smoothing(outputs, inputs);
                 break;
 
@@ -438,8 +443,15 @@ public:
                 CHECK_INPUT_DOUBLE("smooth_mask", "radius", 4);
                 CHECK_INPUT_DOUBLE("smooth_mask", "rwghts", 5);
                 mex_smooth_mask(outputs, inputs);
-                break;
-
+				break;
+            
+			case id_scan_rings_observed:
+				CHECK_NINOUT("scan_rings_observed", 1, 1);
+				CHECK_INPUT_DOUBLE("scan_rings_observed", "map", 1);
+				CHECK_INPUT_VECTOR("scan_rings_observed", "map", 1);
+				mex_scan_rings_observed(outputs, inputs);
+				break;
+	
             default:
                 error("Unhandled dispatch type %d", dispatch);
         }
@@ -477,6 +489,9 @@ private:
     DISPATCH_FN(shrink_mask);
     DISPATCH_FN(smooth_mask);
     DISPATCH_FN(smoothing);
+
+    /* Utility functions */
+    DISPATCH_FN(scan_rings_observed);
 
     #undef DISPATCH_FN
 
@@ -566,6 +581,39 @@ int64_t alm_getn(int64_t lmax, int64_t mmax)
     if (mmax < 0 || lmax < mmax)
         return 0;
     return ((mmax + 1) * (mmax + 2)) / 2 + (mmax + 1) * (lmax - mmax);
+}
+
+// Scans a map vector to determine observed rings and indicates as observed
+// or not as boolean mask in output return array ring.
+//   - map must be a full-sky map vector (i.e. length 12*nside*nside)
+//   - ring must be a vector of length (4*nside-1)
+void _scan_rings_observed(int64_t nside, const double* map, bool* ring) {
+    const int64_t npix  = 12 * nside * nside;
+    const int64_t nring = 4 * nside - 1;
+    // Pixel offset to beginning of each ring (in northern hemisphere)
+    ssize_t base = 0;
+    // N.B.: Ring numbering traditionally 1-based in HEALPix
+    for (ssize_t rr = 1; rr <= 2*nside; ++rr) {
+        bool n_occupied = false;
+        bool s_occupied = false;
+
+        // Polar cap rings are the first (and last) nside rings.
+        // Equitorial belt is (2*nside-1) rings; the equator is considered
+        //   part of the northern hemisphere's nside rings, leaving (nside-1)
+        //   for the southern hemisphere.
+
+        // Within polar cap, each ring is 4*rr long; equitorial belt is 4*nside.
+        ssize_t ringlen = (rr <= nside) ? 4*rr : 4*nside;
+        for (ssize_t pp = 0; pp < ringlen; ++pp) {
+            double nval = map[base + pp];        // Northern hemisphere
+            n_occupied |= nval != 0 && !isnan(nval);
+
+            double sval = map[npix-1-base - pp]; // Southern hemisphere
+            s_occupied |= sval != 0 && !isnan(sval);
+        }
+        ring[rr-1] = n_occupied || s_occupied;
+        base += ringlen;
+    }
 }
 
 /* Externally callable function implementations */
@@ -1445,11 +1493,13 @@ DISPATCH_FN(smoothing) {
     healpix base = nsideorder(inputs[1], inputs[2]);
     auto [buf_mapQ, len_mapQ] = bufferlen<double>(inputs[3]);
     auto [buf_mapU, len_mapU] = bufferlen<double>(inputs[4]);
-    auto [buf_fl,   len_fl]   = bufferlen<double>(inputs[5]);
-    auto lmax = scalar<int32_t>(inputs[6]);
-    auto mmax = scalar<int32_t>(inputs[7]);
-    auto [buf_wght, len_wght] = bufferlen<double>(inputs[8]);
-    auto iter = scalar<int32_t>(inputs[9]);
+    auto [buf_fle,   len_fle]   = bufferlen<double>(inputs[5]);
+    auto [buf_flb,   len_flb]   = bufferlen<double>(inputs[6]);
+    auto lmax = scalar<int32_t>(inputs[7]);
+    auto mmax = scalar<int32_t>(inputs[8]);
+    auto mmin = scalar<int32_t>(inputs[9]);
+    auto [buf_wght, len_wght] = bufferlen<double>(inputs[10]);
+    auto iter = scalar<int32_t>(inputs[11]);
 
     auto mapQ = healmap();
     auto mapU = healmap();
@@ -1477,12 +1527,17 @@ DISPATCH_FN(smoothing) {
 
 	map2alm_spin_iter(job,mapQ,mapU,almsG,almsC,2,iter);
 	
+	double fle,flb;
+	
 	#pragma omp parallel for
 	for (int m=0; m<=mmax; m++) {
 		for (int l=m; l<=lmax; l++) {
-			double fl = l < len_fl ? buf_fl[l] : 0.0;
-			almsG(l,m)*=fl;
-			almsC(l,m)*=fl;
+			if ( l < len_fle && m >= mmin ) fle=buf_fle[l];
+			else fle=0.0;
+			if ( l < len_flb && m >= mmin ) flb=buf_flb[l];
+			else flb=0.0;
+			almsG(l,m)*=fle;
+			almsC(l,m)*=flb;
 		}
 	}
 	
@@ -1568,4 +1623,14 @@ DISPATCH_FN(rotate_alm_pol) {
     outputs[0] = factory.createArrayFromBuffer({len_almsT}, move(buf_almsT));
     outputs[1] = factory.createArrayFromBuffer({len_almsG}, move(buf_almsG));
     outputs[2] = factory.createArrayFromBuffer({len_almsC}, move(buf_almsC));
+}
+
+DISPATCH_FN(scan_rings_observed) {
+    auto [buf_map, len_map] = bufferlen<double>(inputs[1]);
+    auto nside = static_cast<int>(sqrt(len_map / 12));
+
+    auto buf_rings = factory.createBuffer<bool>(2*nside);
+
+    _scan_rings_observed(nside, buf_map.get(),  buf_rings.get());
+    outputs[0] = factory.createArrayFromBuffer({2*nside}, move(buf_rings));
 }

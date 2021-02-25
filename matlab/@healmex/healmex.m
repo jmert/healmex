@@ -22,8 +22,8 @@ classdef healmex < matlab.mixin.CustomDisplay
     [mapT,mapQ,mapU] = hpx_alm2map_pol(lmax, mmax, almsT, almsG, almsC, nside, order)
     [mapQ,mapU] = hpx_alm2map_polonly(lmax, mmax, almsG, almsC, nside, order)
 	
-    [mapQ,mapU] = hpx_smoothing(mapQ, mapU, fl, order, lmax, mmax, nside, rwghts, niter)
-    map = smoothing(map, fl, mask, order, lmax, mmax, nside, niter)
+    [mapQ,mapU] = hpx_smoothing(mapQ, mapU, fle, flb, order, lmax, mmax, mmin, nside, rwghts, niter)
+    map = smoothing(map, fl, mask, order, lmax, mmax, mmin, nside, niter)
 
     [lmax, mmax] = alm_getlmmax(alms, lmax, mmax)
     [l,m] = alm_getlm(lmax,idx)
@@ -42,6 +42,8 @@ classdef healmex < matlab.mixin.CustomDisplay
     amap = hpx_shrink_mask(nside, order, map, radius)
     amap = smooth_mask(map, radius, order)
     amap = hpx_smooth_mask(nside, order, map, radius, rwghts)
+	
+	rwghts = scan_rings_observed(map)
   end
 
   methods (Access = protected)
