@@ -8,9 +8,11 @@ classdef healmex < matlab.mixin.CustomDisplay
     vec = pix2vec(nside, order, ipix)
     [z, phi] = pix2zphi(nside, order, ipix)
     [theta, phi] = pix2ang(nside, order, ipix)
+    [x, y, f] = pix2xyf(nside, order, ipix)
     ipix = vec2pix(nside, order, vec)
     ipix = zphi2pix(nside, order, z, phi)
     ipix = ang2pix(nside, order, theta, phi)
+    ipix = xyf2pix(nside, order, x, y, f)
 
     alms = map2alm(map, order, lmax, mmax, nside, niter)
     map = alm2map(alms, nside, order, lmax, mmax)
