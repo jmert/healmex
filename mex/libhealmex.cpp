@@ -83,8 +83,7 @@ enum libhealpix_mex_calls {
     id_alm2map_pol      = 56,
     id_alm2cl           = 61,
     id_almxfl           = 62,
-    id_rotate_alm       = 65,
-    id_rotate_alm_pol   = 66
+    id_rotate_alm_coord = 65
 };
 
 class MexFunction : public matlab::mex::Function {
@@ -351,30 +350,18 @@ public:
                 mex_almxfl(outputs, inputs);
                 break;
 
-            case id_rotate_alm:
-                CHECK_NINOUT("rotate_alm", 4, 1);
-                CHECK_INPUT_SCALAR("rotate_alm", "itransform", 1);
-                CHECK_INPUT_INT32("rotate_alm", "itransform", 1);
-                CHECK_INPUT_SCALAR("alm2cl", "lmax", 2);
-                CHECK_INPUT_INT32("alm2cl", "lmax", 2);
-                CHECK_INPUT_SCALAR("alm2cl", "mmax", 3);
-                CHECK_INPUT_INT32("alm2cl", "mmax", 3);
-                CHECK_INPUT_COMPLEX64("rotate_alm", "alms", 4);
-                mex_rotate_alm(outputs, inputs);
-                break;
-
-            case id_rotate_alm_pol:
-                CHECK_NINOUT("rotate_alm_pol", 6, 3);
-                CHECK_INPUT_SCALAR("rotate_alm_pol", "itransform", 1);
-                CHECK_INPUT_INT32("rotate_alm_pol", "itransform", 1);
-                CHECK_INPUT_SCALAR("alm2cl", "lmax", 2);
-                CHECK_INPUT_INT32("alm2cl", "lmax", 2);
-                CHECK_INPUT_SCALAR("alm2cl", "mmax", 3);
-                CHECK_INPUT_INT32("alm2cl", "mmax", 3);
-                CHECK_INPUT_COMPLEX64("rotate_alm_pol", "almsT", 4);
-                CHECK_INPUT_COMPLEX64("rotate_alm_pol", "almsG", 5);
-                CHECK_INPUT_COMPLEX64("rotate_alm_pol", "almsC", 6);
-                mex_rotate_alm_pol(outputs, inputs);
+            case id_rotate_alm_coord:
+                CHECK_NINOUT("rotate_alm_coord", 6, 3);
+                CHECK_INPUT_SCALAR("rotate_alm_coord", "itransform", 1);
+                CHECK_INPUT_INT32("rotate_alm_coord", "itransform", 1);
+                CHECK_INPUT_SCALAR("rotate_alm_coord", "lmax", 2);
+                CHECK_INPUT_INT32("rotate_alm_coord", "lmax", 2);
+                CHECK_INPUT_SCALAR("rotate_alm_coord", "mmax", 3);
+                CHECK_INPUT_INT32("rotate_alm_coord", "mmax", 3);
+                CHECK_INPUT_COMPLEX64("rotate_alm_coord", "almsT", 4);
+                CHECK_INPUT_COMPLEX64("rotate_alm_coord", "almsG", 5);
+                CHECK_INPUT_COMPLEX64("rotate_alm_coord", "almsC", 6);
+                mex_rotate_alm_coord(outputs, inputs);
                 break;
 
             default:
@@ -408,8 +395,7 @@ private:
 
     DISPATCH_FN(alm2cl);
     DISPATCH_FN(almxfl);
-    DISPATCH_FN(rotate_alm);
-    DISPATCH_FN(rotate_alm_pol);
+    DISPATCH_FN(rotate_alm_coord);
 
     #undef DISPATCH_FN
 
@@ -971,23 +957,7 @@ inline void coordsys2matrix (int num, rotmatrix& rm) {
     #undef c2m
 }
 
-DISPATCH_FN(rotate_alm) {
-    auto itransform = scalar<int32_t>(inputs[1]);
-    auto lmax = scalar<int32_t>(inputs[2]);
-    auto mmax = scalar<int32_t>(inputs[3]);
-    auto [buf_alms, len_alms] = bufferlen<complex64>(inputs[4]);
-    auto alms = healalm();
-    {
-        arr<complex64> tmp(buf_alms.get(), len_alms);
-        alms.Set(tmp, lmax, mmax);
-    }
-
-    rotmatrix rm;
-    coordsys2matrix(itransform, rm);
-    rotate_alm(alms, rm);
-    outputs[0] = factory.createArrayFromBuffer({len_alms}, move(buf_alms));
-}
-DISPATCH_FN(rotate_alm_pol) {
+DISPATCH_FN(rotate_alm_coord) {
     auto itransform = scalar<int32_t>(inputs[1]);
     auto lmax = scalar<int32_t>(inputs[2]);
     auto mmax = scalar<int32_t>(inputs[3]);
@@ -995,6 +965,12 @@ DISPATCH_FN(rotate_alm_pol) {
     auto [buf_almsG, len_almsG] = bufferlen<complex64>(inputs[5]);
     auto [buf_almsC, len_almsC] = bufferlen<complex64>(inputs[6]);
 
+    if (len_almsG != len_almsC) {
+        error("almsG and almsC must have the same size");
+    }
+    if (len_almsG > 0 && len_almsT != len_almsT) {
+        error("almsT, almsG, and almsC have mismatched sizes");
+    }
     auto almsT = healalm();
     auto almsG = healalm();
     auto almsC = healalm();
@@ -1002,18 +978,24 @@ DISPATCH_FN(rotate_alm_pol) {
         arr<complex64> tmp(buf_almsT.get(), len_almsT);
         almsT.Set(tmp, lmax, mmax);
     }
-    {
-        arr<complex64> tmp(buf_almsG.get(), len_almsG);
-        almsG.Set(tmp, lmax, mmax);
-    }
-    {
-        arr<complex64> tmp(buf_almsC.get(), len_almsC);
-        almsC.Set(tmp, lmax, mmax);
+    if (len_almsG > 0) {
+        {
+            arr<complex64> tmp(buf_almsG.get(), len_almsG);
+            almsG.Set(tmp, lmax, mmax);
+        }
+        {
+            arr<complex64> tmp(buf_almsC.get(), len_almsC);
+            almsC.Set(tmp, lmax, mmax);
+        }
     }
 
     rotmatrix rm;
     coordsys2matrix(itransform, rm);
-    rotate_alm(almsT, almsG, almsC, rm);
+    if (len_almsG > 0) {
+        rotate_alm(almsT, almsG, almsC, rm);
+    } else {
+        rotate_alm(almsT, rm);
+    }
 
     outputs[0] = factory.createArrayFromBuffer({len_almsT}, move(buf_almsT));
     outputs[1] = factory.createArrayFromBuffer({len_almsG}, move(buf_almsG));
