@@ -28,6 +28,20 @@ inline bool isint32(Array& a)     { return a.getType() == ArrayType::INT32; }
 inline bool isint64(Array& a)     { return a.getType() == ArrayType::INT64; }
 inline bool isdouble(Array& a)    { return a.getType() == ArrayType::DOUBLE; }
 inline bool iscomplex64(Array& a) { return a.getType() == ArrayType::COMPLEX_DOUBLE; }
+inline bool isint(Array& a) {
+    switch (sizeof(int)) {
+        case sizeof(int32_t): return a.getType() == ArrayType::INT32; break;
+        case sizeof(int64_t): return a.getType() == ArrayType::INT64; break;
+        default: return false;
+    }
+}
+inline bool islong(Array& a) {
+    switch (sizeof(long)) {
+        case sizeof(int32_t): return a.getType() == ArrayType::INT32; break;
+        case sizeof(int64_t): return a.getType() == ArrayType::INT64; break;
+        default: return false;
+    }
+}
 
 inline bool isscalar(Array& a) { return a.getNumberOfElements() == 1; }
 inline bool isvector(Array& a) {
@@ -61,6 +75,8 @@ enum libhealpix_mex_calls {
     id_vec2pix          = 14,
     id_zphi2pix         = 15,
     id_ang2pix          = 16,
+    id_pix2xyf          = 17,
+    id_xyf2pix          = 18,
     id_map2alm_iter     = 53,
     id_map2alm_pol_iter = 54,
     id_alm2map          = 55,
@@ -126,6 +142,10 @@ public:
         #define CHECK_INPUT_MATRIX(funcname, argname, num) CHECK_WRAP( \
             if (!ismatrix(inputs[num])) { \
                 error(funcname ": argument " #num " (" argname ") must be a matrix.", num); \
+            } )
+        #define CHECK_INPUT_INT(funcname, argname, num) CHECK_WRAP( \
+            if (!isint(inputs[num])) { \
+                error(funcname ": argument " #num " (" argname ") must of type int.", num); \
             } )
         #define CHECK_INPUT_INT32(funcname, argname, num) CHECK_WRAP( \
             if (!isint32(inputs[num])) { \
@@ -223,6 +243,26 @@ public:
                 CHECK_INPUT_DOUBLE("ang2pix", "theta", 3);
                 CHECK_INPUT_DOUBLE("ang2pix", "phi", 4);
                 mex_ang2pix(outputs, inputs);
+                break;
+
+            case id_pix2xyf:
+                CHECK_NINOUT("pix2xyf", 3, 3);
+                CHECK_INPUT_SCALAR("pix2xyf", "nside", 1);
+                CHECK_INPUT_INT64("pix2xyf", "nside", 1);
+                CHECK_INPUT_CHAR("pix2xyf", "order", 2);
+                CHECK_INPUT_INT64("pix2xyf", "ipix", 3);
+                mex_pix2xyf(outputs, inputs);
+                break;
+
+            case id_xyf2pix:
+                CHECK_NINOUT("xyf2pix", 5, 1);
+                CHECK_INPUT_SCALAR("xyf2pix", "nside", 1);
+                CHECK_INPUT_INT64("xyf2pix", "nside", 1);
+                CHECK_INPUT_CHAR("xyf2pix", "order", 2);
+                CHECK_INPUT_INT("xyf2pix", "x", 3);
+                CHECK_INPUT_INT("xyf2pix", "y", 4);
+                CHECK_INPUT_INT("xyf2pix", "f", 5);
+                mex_xyf2pix(outputs, inputs);
                 break;
 
             case id_map2alm_iter:
@@ -358,6 +398,8 @@ private:
     DISPATCH_FN(vec2pix);
     DISPATCH_FN(zphi2pix);
     DISPATCH_FN(ang2pix);
+    DISPATCH_FN(pix2xyf);
+    DISPATCH_FN(xyf2pix);
 
     DISPATCH_FN(map2alm_iter);
     DISPATCH_FN(map2alm_pol_iter);
@@ -628,6 +670,54 @@ DISPATCH_FN(ang2pix) {
 
     outputs[0] = factory.createArrayFromBuffer({npix}, move(ipix));
 }
+
+DISPATCH_FN(pix2xyf) {
+    healpix base = nsideorder(inputs[1], inputs[2]);
+    TypedArray<int64_t> ml_ipix = inputs[3];
+
+    auto ipix  = buffer<int64_t>(ml_ipix);
+    auto dims  = ml_ipix.getDimensions();
+    auto npix  = ml_ipix.getNumberOfElements();
+    auto x = factory.createBuffer<int>(npix);
+    auto y = factory.createBuffer<int>(npix);
+    auto f = factory.createBuffer<int>(npix);
+
+    #pragma omp parallel for
+    for (size_t ii = 0; ii < npix; ++ii) {
+        base.pix2xyf(ipix[ii], x[ii], y[ii], f[ii]);
+    }
+
+    outputs[0] = factory.createArrayFromBuffer({npix}, move(x));
+    outputs[1] = factory.createArrayFromBuffer({npix}, move(y));
+    outputs[2] = factory.createArrayFromBuffer({npix}, move(f));
+}
+
+DISPATCH_FN(xyf2pix) {
+    healpix base = nsideorder(inputs[1], inputs[2]);
+    TypedArray<int> ml_x = inputs[3];
+    TypedArray<int> ml_y = inputs[4];
+    TypedArray<int> ml_f = inputs[5];
+
+    auto npix = ml_x.getNumberOfElements();
+    if (npix != ml_y.getNumberOfElements()) {
+        error("xyf2pix: x and y must have the same number of elements");
+    }
+    if (npix != ml_f.getNumberOfElements()) {
+        error("xyf2pix: x and f must have the same number of elements");
+    }
+    auto x = buffer<int>(ml_x);
+    auto y = buffer<int>(ml_y);
+    auto f = buffer<int>(ml_f);
+    auto ipix = factory.createBuffer<int64_t>(npix);
+
+    #pragma omp parallel for
+    for (size_t ii = 0; ii < npix; ++ii) {
+        ipix[ii] = base.xyf2pix(x[ii], y[ii], f[ii]);
+    }
+
+    outputs[0] = factory.createArrayFromBuffer({npix}, move(ipix));
+}
+
 
 DISPATCH_FN(map2alm_iter) {
     healpix base = nsideorder(inputs[1], inputs[2]);
