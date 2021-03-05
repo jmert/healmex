@@ -817,7 +817,7 @@ DISPATCH_FN(alm2map) {
         alms.Set(tmp, lmax, mmax);
     }
 
-    auto npix = 12 * base.Nside() * base.Nside();
+    auto npix = (size_t)12 * base.Nside() * base.Nside();
     auto map = healmap();
     auto buf_map = factory.createBuffer<double>(npix);
     {
@@ -854,7 +854,7 @@ DISPATCH_FN(alm2map_pol) {
         almsC.Set(tmp, lmax, mmax);
     }
 
-    auto npix = 12 * base.Nside() * base.Nside();
+    auto npix = (size_t)12 * base.Nside() * base.Nside();
     auto mapT = healmap();
     auto mapQ = healmap();
     auto mapU = healmap();
@@ -884,6 +884,9 @@ DISPATCH_FN(alm2map_pol) {
 DISPATCH_FN(alm2cl) {
     auto lmax = scalar<int32_t>(inputs[1]);
     auto mmax = scalar<int32_t>(inputs[2]);
+    if (lmax < 0 || mmax < 0) {
+        error("lmax and mmax must be non-negative values");
+    }
     auto [buf_alms1, len_alms1] = bufferlen<complex64>(inputs[3]);
     auto [buf_alms2, len_alms2] = bufferlen<complex64>(inputs[4]);
 
@@ -898,7 +901,7 @@ DISPATCH_FN(alm2cl) {
         alms2.Set(tmp, lmax, mmax);
     }
 
-    auto powspec = factory.createBuffer<double>(lmax + 1);
+    auto powspec = factory.createBuffer<double>((size_t)lmax + 1);
 
     // Essentially extract_crosspowspec from alm_powspec_tools.{h,cc}, but
     // avoids PowSpec object which can't be given a pre-allocated buffer to
@@ -913,7 +916,7 @@ DISPATCH_FN(alm2cl) {
         powspec[ll] /= (2*ll + 1);
     }
 
-    outputs[0] = factory.createArrayFromBuffer({lmax+1}, move(powspec));
+    outputs[0] = factory.createArrayFromBuffer({(size_t)lmax+1}, move(powspec));
 }
 
 DISPATCH_FN(almxfl) {
