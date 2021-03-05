@@ -1,12 +1,17 @@
-function alms = rotate_alm(rotate, alms, lmax, mmax)
-% alms = rotate_alms(rotate, alms, lmax, mmax)
+function alms = rotate_alm(alms, rotate, lmax, mmax)
+% alms = rotate_alms(alms, rotate, lmax, mmax)
 % INPUTS
+%   alms        A Nx1 or Nx3 complex matrix of spherical harmonic coefficients.
+%
 %   rotate      Rotation to perform. Valid specifications are:
 %               1. A pair of characters among 'C', 'E', & 'G' to indicate
 %                  transforming from/to celestial (equatorial), ecliptic, and
 %                  galactic coordinates (all J2000), respectively.
 %
-%               2. A scalar integer from the following list:
+%               2. A 3-vector of euler rotation angles [psi, theta, phi]
+%                  (right-handed active rotation in ZYZ convention).
+%
+%               3. A scalar integer from the following list:
 %                      1 = Equatorial (2000) -> Galactic   (2000)
 %                      2 = Galactic   (2000) -> Equatorial (2000)
 %                      3 = Equatorial (2000) -> Ecliptic   (2000)
@@ -20,7 +25,6 @@ function alms = rotate_alm(rotate, alms, lmax, mmax)
 %                     11 = Ecliptic   (1950) -> Galactic   (1950)
 %                     12 = Galactic   (1950) -> Ecliptic   (1950)
 %
-%   alms        A Nx1 or Nx3 complex matrix of spherical harmonic coefficients.
 %   lmax        Maximum degree of spherical harmonics. Optional if
 %               alm_getlmmax() can infer lmax from the size of alms.
 %   mmax        Maximum order of spherical harmonics. Optional if
@@ -42,14 +46,14 @@ function alms = rotate_alm(rotate, alms, lmax, mmax)
 
   if size(alms, 2) == 1
     % T-only alms - pass through empty/dummy complex alms as almsG & almsC
-    almsT = alms;
+    almsT = complex(double(alms));
     almsG = complex(double([]));
     almsC = complex(double([]));
   elseif size(alms, 2) == 3
     % T + Pol alms case
-    almsT = alms(:,1);
-    almsG = alms(:,2);
-    almsC = alms(:,3);
+    almsT = complex(double(alms(:,1)));
+    almsG = complex(double(alms(:,2)));
+    almsC = complex(double(alms(:,3)));
   else
     error('alms: Expected size 1 or 3 in second dimension, got %d', ...
         size(alms, 2));
@@ -65,12 +69,24 @@ function alms = rotate_alm(rotate, alms, lmax, mmax)
     end
     % abbreviations for the first 6 numbered transforms
     itransforms = {'CG', 'GC', 'CE', 'EC', 'EG', 'GE'};
+    % Fall through to numbered transform case
     rotate = strmatch(rotate, itransforms, 'exact');
-    [almsT,almsG,almsC] = rotate_alms_coord(rotate, lmax, mmax, almsT, almsG, almsC);
+  end
+
+  % Rotate by euler angles
+  if isvector(rotate) && length(rotate) == 3
+    [almsT,almsG,almsC] = libhealmex(int64(66), ...
+        double(rotate), int32(lmax), int32(mmax), ...
+        almsT, almsG, almsC);
 
   % Rotate by coordinate transformation ID number
   elseif isscalar(rotate) && fix(rotate) == rotate
-    [almsT,almsG,almsC] = rotate_alms_coord(rotate, lmax, mmax, almsT, almsG, almsC);
+    if rotate < 0 || rotate > 12
+      error('Invalid coordinate transform ID: %d', rotate);
+    end
+    [almsT,almsG,almsC] = libhealmex(int64(65), ...
+        int32(rotate), int32(lmax), int32(mmax), ...
+        almsT, almsG, almsC);
   else
     error('Invalid rotation specification')
   end
@@ -80,13 +96,4 @@ function alms = rotate_alm(rotate, alms, lmax, mmax)
   else
     alms = [almsT almsG almsC];
   end
-end
-
-function [almsT,almsG,almsC] = rotate_alms_coord(transform, lmax, mmax, almsT, almsG, almsC)
-  if transform < 0 || transform > 12
-    error('Invalid coordinate transform specificiation: %d', transform);
-  end
-  [almsT,almsG,almsC] = libhealmex(int64(65), ...
-      int32(transform), int32(lmax), int32(mmax), ...
-      almsT, almsG, almsC);
 end
