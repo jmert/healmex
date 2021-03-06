@@ -85,6 +85,7 @@ enum libhealpix_mex_calls {
     id_almxfl           = 62,
     id_rotate_alm_coord = 65,
     id_rotate_alm_euler = 66,
+    id_rotate_alm_matrix= 67,
 };
 
 class MexFunction : public matlab::mex::Function {
@@ -379,6 +380,20 @@ public:
                 mex_rotate_alm_euler(outputs, inputs);
                 break;
 
+            case id_rotate_alm_matrix:
+                CHECK_NINOUT("rotate_alm_matrix", 6, 3);
+                CHECK_INPUT_MATRIX("rotate_alm_matrix", "matrix", 1);
+                CHECK_INPUT_DOUBLE("rotate_alm_matrix", "matrix", 1);
+                CHECK_INPUT_SCALAR("rotate_alm_matrix", "lmax", 2);
+                CHECK_INPUT_INT32("rotate_alm_matrix", "lmax", 2);
+                CHECK_INPUT_SCALAR("rotate_alm_matrix", "mmax", 3);
+                CHECK_INPUT_INT32("rotate_alm_matrix", "mmax", 3);
+                CHECK_INPUT_COMPLEX64("rotate_alm_matrix", "almsT", 4);
+                CHECK_INPUT_COMPLEX64("rotate_alm_matrix", "almsG", 5);
+                CHECK_INPUT_COMPLEX64("rotate_alm_matrix", "almsC", 6);
+                mex_rotate_alm_matrix(outputs, inputs);
+                break;
+
             default:
                 error("Unhandled dispatch type %d", dispatch);
         }
@@ -412,6 +427,7 @@ private:
     DISPATCH_FN(almxfl);
     DISPATCH_FN(rotate_alm_coord);
     DISPATCH_FN(rotate_alm_euler);
+    DISPATCH_FN(rotate_alm_matrix);
 
     #undef DISPATCH_FN
 
@@ -982,10 +998,10 @@ DISPATCH_FN(rotate_alm_coord) {
     auto [buf_almsC, len_almsC] = bufferlen<complex64>(inputs[6]);
 
     if (len_almsG != len_almsC) {
-        error("almsG and almsC must have the same size");
+        error("rotate_alm: almsG and almsC must have the same size");
     }
     if (len_almsG > 0 && len_almsT != len_almsT) {
-        error("almsT, almsG, and almsC have mismatched sizes");
+        error("rotate_alm: almsT, almsG, and almsC have mismatched sizes");
     }
     auto almsT = healalm();
     auto almsG = healalm();
@@ -1027,13 +1043,13 @@ DISPATCH_FN(rotate_alm_euler) {
     auto [buf_almsC, len_almsC] = bufferlen<complex64>(inputs[6]);
 
     if (len_euler != 3) {
-        error("euler must be 3-vector of angles");
+        error("rotate_alm: euler must be 3-vector of angles");
     }
     if (len_almsG != len_almsC) {
-        error("almsG and almsC must have the same size");
+        error("rotate_alm: almsG and almsC must have the same size");
     }
     if (len_almsG > 0 && len_almsT != len_almsT) {
-        error("almsT, almsG, and almsC have mismatched sizes");
+        error("rotate_alm: almsT, almsG, and almsC have mismatched sizes");
     }
     auto almsT = healalm();
     auto almsG = healalm();
@@ -1060,6 +1076,57 @@ DISPATCH_FN(rotate_alm_euler) {
         rotate_alm(almsT, almsG, almsC, psi, theta, phi);
     } else {
         rotate_alm(almsT, psi, theta, phi);
+    }
+
+    outputs[0] = factory.createArrayFromBuffer({len_almsT}, move(buf_almsT));
+    outputs[1] = factory.createArrayFromBuffer({len_almsG}, move(buf_almsG));
+    outputs[2] = factory.createArrayFromBuffer({len_almsC}, move(buf_almsC));
+}
+
+DISPATCH_FN(rotate_alm_matrix) {
+    auto [buf_rm, len_rm] = bufferlen<double>(inputs[1]);
+    auto lmax = scalar<int32_t>(inputs[2]);
+    auto mmax = scalar<int32_t>(inputs[3]);
+    auto [buf_almsT, len_almsT] = bufferlen<complex64>(inputs[4]);
+    auto [buf_almsG, len_almsG] = bufferlen<complex64>(inputs[5]);
+    auto [buf_almsC, len_almsC] = bufferlen<complex64>(inputs[6]);
+
+    if (len_rm != 9) {
+        error("rotate_alm: matrix must be a 3-by-3 rotation matrix");
+    }
+    if (len_almsG != len_almsC) {
+        error("rotate_alm: almsG and almsC must have the same size");
+    }
+    if (len_almsG > 0 && len_almsT != len_almsT) {
+        error("rotate_alm: almsT, almsG, and almsC have mismatched sizes");
+    }
+    auto almsT = healalm();
+    auto almsG = healalm();
+    auto almsC = healalm();
+    {
+        arr<complex64> tmp(buf_almsT.get(), len_almsT);
+        almsT.Set(tmp, lmax, mmax);
+    }
+    if (len_almsG > 0) {
+        {
+            arr<complex64> tmp(buf_almsG.get(), len_almsG);
+            almsG.Set(tmp, lmax, mmax);
+        }
+        {
+            arr<complex64> tmp(buf_almsC.get(), len_almsC);
+            almsC.Set(tmp, lmax, mmax);
+        }
+    }
+
+    // Matlab is column major, arguments in row-major order
+    double a00 = buf_rm[0], a01 = buf_rm[3], a02 = buf_rm[6]; // row 1
+    double a10 = buf_rm[1], a11 = buf_rm[4], a12 = buf_rm[7]; // row 2
+    double a20 = buf_rm[2], a21 = buf_rm[5], a22 = buf_rm[8]; // row 3
+    rotmatrix rm = rotmatrix(a00, a01, a02, a10, a11, a12, a20, a21, a22);
+    if (len_almsG > 0) {
+        rotate_alm(almsT, almsG, almsC, rm);
+    } else {
+        rotate_alm(almsT, rm);
     }
 
     outputs[0] = factory.createArrayFromBuffer({len_almsT}, move(buf_almsT));

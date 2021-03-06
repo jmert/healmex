@@ -6,6 +6,9 @@ function alms = map2alm(map, order, lmax, mmax, nside, niter)
 %           be the intensity map, and columns 2 and 3 are assumed to be the
 %           Stokes Q and U fields, respectively.
 %
+%   order   HEALPix map pixelization order, either 'RING' or 'NESTED'.
+%           Defaults to 'RING'.
+%
 %   lmax    The maximum degree harmonic coefficient to compute. Defaults to
 %           3*nside-1 if not provided.
 %

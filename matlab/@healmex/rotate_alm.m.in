@@ -8,10 +8,16 @@ function alms = rotate_alm(alms, rotate, lmax, mmax)
 %                  transforming from/to celestial (equatorial), ecliptic, and
 %                  galactic coordinates (all J2000), respectively.
 %
-%               2. A 3-vector of euler rotation angles [psi, theta, phi]
-%                  (right-handed active rotation in ZYZ convention).
+%               2. A 3-vector of euler rotation angles [psi, theta, phi] in
+%                  radians (right-handed active rotation in ZYZ convention).
 %
-%               3. A scalar integer from the following list:
+%               2. A 3x3 rotation matrix, with the rotation in terms of ZYZ
+%                  euler angles consistent with the composition
+%                    R = rotz(phi) * roty(theta) * rotz(psi)
+%                  (where psi,theta,phi are in degrees to match Matlab's rot
+%                  functions).
+%
+%               4. A scalar integer from the following list:
 %                      1 = Equatorial (2000) -> Galactic   (2000)
 %                      2 = Galactic   (2000) -> Equatorial (2000)
 %                      3 = Equatorial (2000) -> Ecliptic   (2000)
@@ -76,6 +82,12 @@ function alms = rotate_alm(alms, rotate, lmax, mmax)
   % Rotate by euler angles
   if isvector(rotate) && length(rotate) == 3
     [almsT,almsG,almsC] = libhealmex(int64(66), ...
+        double(rotate), int32(lmax), int32(mmax), ...
+        almsT, almsG, almsC);
+
+  % Rotation by a matrix
+  elseif ismatrix(rotate) && all(size(rotate) == [3,3])
+    [almsT,almsG,almsC] = libhealmex(int64(67), ...
         double(rotate), int32(lmax), int32(mmax), ...
         almsT, almsG, almsC);
 
