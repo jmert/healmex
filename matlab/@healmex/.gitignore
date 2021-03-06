@@ -1,6 +1,7 @@
 # Files which are processed from .in files
 alm2cl.m
 alm2map.m
+alm2map_der1.m
 almxfl.m
 map2alm.m
 rotate_alm.m
