@@ -80,6 +80,7 @@ enum libhealpix_mex_calls {
     id_map2alm_iter     = 53,
     id_map2alm_pol_iter = 54,
     id_alm2map          = 55,
+    id_alm2map_der1     = 56,
     id_alm2cl           = 61,
     id_almxfl           = 62,
     id_rotate_alm_coord = 65,
@@ -314,6 +315,18 @@ public:
                 mex_alm2map(outputs, inputs);
                 break;
 
+            case id_alm2map_der1:
+                CHECK_NINOUT("alm2map_der1", 4, 3);
+                CHECK_INPUT_SCALAR("alm2map_der1", "lmax", 1);
+                CHECK_INPUT_INT32("alm2map_der1", "lmax", 1);
+                CHECK_INPUT_SCALAR("alm2map_der1", "mmax", 2);
+                CHECK_INPUT_INT32("alm2map_der1", "mmax", 2);
+                CHECK_INPUT_COMPLEX64("alm2map_der1", "alms", 3);
+                CHECK_INPUT_SCALAR("alm2map_der1", "nside", 4);
+                CHECK_INPUT_INT64("alm2map_der1", "nside", 4);
+                mex_alm2map_der1(outputs, inputs);
+                break;
+
             case id_alm2cl:
                 CHECK_NINOUT("alm2cl", 4, 1);
                 CHECK_INPUT_SCALAR("alm2cl", "lmax", 1);
@@ -407,6 +420,7 @@ private:
     DISPATCH_FN(map2alm_iter);
     DISPATCH_FN(map2alm_pol_iter);
     DISPATCH_FN(alm2map);
+    DISPATCH_FN(alm2map_der1);
 
     DISPATCH_FN(alm2cl);
     DISPATCH_FN(almxfl);
@@ -866,6 +880,46 @@ DISPATCH_FN(alm2map) {
     outputs[0] = factory.createArrayFromBuffer({npix}, move(buf_mapT));
     outputs[1] = factory.createArrayFromBuffer({do_pol ? npix : (size_t)0}, move(buf_mapQ));
     outputs[2] = factory.createArrayFromBuffer({do_pol ? npix : (size_t)0}, move(buf_mapU));
+}
+
+DISPATCH_FN(alm2map_der1) {
+    auto lmax = scalar<int32_t>(inputs[1]);
+    auto mmax = scalar<int32_t>(inputs[2]);
+    auto [buf_alms, len_alms] = bufferlen<complex64>(inputs[3]);
+    healpix base = nsideorder(inputs[4]);
+
+    auto npix = (size_t)12 * base.Nside() * base.Nside();
+    auto alms = healalm();
+    {
+        arr<complex64> tmp(buf_alms.get(), len_alms);
+        alms.Set(tmp, lmax, mmax);
+    }
+
+    auto map    = healmap();
+    auto mapdth = healmap();
+    auto mapdph = healmap();
+
+    auto buf_map    = factory.createBuffer<double>(npix);
+    auto buf_mapdth = factory.createBuffer<double>(npix);
+    auto buf_mapdph = factory.createBuffer<double>(npix);
+    {
+        arr<double> tmp(buf_map.get(), npix);
+        map.Set(tmp, base.Scheme());
+    }
+    {
+        arr<double> tmp(buf_mapdth.get(), npix);
+        mapdth.Set(tmp, base.Scheme());
+    }
+    {
+        arr<double> tmp(buf_mapdph.get(), npix);
+        mapdph.Set(tmp, base.Scheme());
+    }
+
+    alm2map_der1(alms, map, mapdth, mapdph);
+
+    outputs[0] = factory.createArrayFromBuffer({npix}, move(buf_map));
+    outputs[1] = factory.createArrayFromBuffer({npix}, move(buf_mapdth));
+    outputs[2] = factory.createArrayFromBuffer({npix}, move(buf_mapdph));
 }
 
 DISPATCH_FN(alm2cl) {

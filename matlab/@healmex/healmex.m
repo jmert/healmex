@@ -16,6 +16,7 @@ classdef healmex < matlab.mixin.CustomDisplay
 
     alms = map2alm(map, order, lmax, mmax, nside, niter)
     map = alm2map(alms, nside, order, lmax, mmax)
+    map = alm2map_der1(alms, nside, lmax, mmax)
     alms = hpx_map2alm(nside, order, map, lmax, mmax, rwghts, iter)
     [almsT,almsG,almsC] = hpx_map2alm_pol(nside, order, mapT, mapQ, mapU, lmax, mmax, rwghts, iter)
 

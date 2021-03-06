@@ -1,0 +1,45 @@
+function map = alm2map_der1(alms, nside, lmax, mmax)
+% map = alm2map_der1(alms, nside, lmax, mmax)
+%
+% Synthesizes a map and its first derivatives from the provided alms at
+% Nisde = nside with RING ordered pixelization.
+%
+% INPUTS
+%   alms    The spherical harmonic coefficients of a map.
+%
+%   nside   HEALPix Nside of output map to synthesize.
+%
+%   lmax    The maximum degree harmonic coefficient to compute. Optional if
+%           inferrable by alm_getlmmax().
+%
+%   mmax    The maximum order harmonic coefficient to compute. Optional if
+%           inferrable by alm_getlmmax()l
+%
+% OUTPUTS
+%   map     An Nx3 matrix of map pixel values. Each of the columns are:
+%             1. The synthesized map from the given alms.
+%             2. The derivative map d(map)/d(theta).
+%             3. The derivative map d(map)/d(phi) / sin(theta).
+%
+% EXAMPLE
+
+  if ~exist('lmax', 'var')
+    lmax = [];
+  end
+  if ~exist('mmax', 'var')
+    mmax = [];
+  end
+
+  [lmax, mmax] = @CLASSPREFIX@alm_getlmmax(alms, lmax, mmax);
+
+  if size(alms, 2) ~= 1
+    error('alms: Expected size 1 in second dimension, got %d', ...
+        size(alms, 2));
+  end
+
+  [map, mapdth, mapdph] = libhealmex(int64(56), ...
+      int32(lmax), int32(mmax), complex(double(alms)), ...
+      int64(nside));
+
+  map = [map mapdth mapdph];
+end
