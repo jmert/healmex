@@ -53,14 +53,27 @@ function alms = map2alm(map, order, lmax, mmax, nside, niter)
   rwghts = ones(4 * nside - 1, 1);
 
   if size(map, 2) == 1
-    alms = @CLASSPREFIX@hpx_map2alm(nside, order, map, ...
-        lmax, mmax, rwghts, niter);
+    % T-only alms - pass through empty/dummy pol maps
+    mapT = map(:,1);
+    mapQ = double([]);
+    mapU = double([]);
   elseif size(map, 2) == 3
-    [alms(:,1),alms(:,2),alms(:,3)] = @CLASSPREFIX@hpx_map2alm_pol(...
-        nside, order, map(:,1), map(:,2), map(:,3), ...
-        lmax, mmax, rwghts, niter);
+    % T + Pol maps case
+    mapT = map(:,1);
+    mapQ = map(:,2);
+    mapU = map(:,3);
   else
     error('map: Expected size 1 or 3 in second dimension, got %d', ...
         size(map, 2));
+  end
+
+  [almsT,almsG,almsC] = libhealmex(int64(53), ...
+      int64(nside), char(order), double(mapT), double(mapQ), double(mapU), ...
+      int32(lmax), int32(mmax), double(rwghts), int32(niter));
+
+  if size(map, 2) == 1
+    alms = almsT;
+  else
+    alms = [almsT almsG almsC];
   end
 end
