@@ -1,5 +1,5 @@
-function [lmax,mmax] = alm_getlmmax(alms, lmax, mmax)
-% [lmax,mmax] = alm_getlmmax(alms, lmax, mmax)
+function [lmax, mmax] = alm_getlmmax(alms, lmax, mmax)
+% [lmax, mmax] = alm_getlmmax(alms, lmax, mmax)
 %
 % Infers the lmax and/or mmax from the alms vector (or length of the
 % first dimension if alms is a matrix).
