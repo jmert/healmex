@@ -1,5 +1,5 @@
-function alms = rotate_alm(alms, rotate, lmax, mmax)
-% alms = rotate_alms(alms, rotate, lmax, mmax)
+function alms = rotate_alm(alms, rotate, varargin)
+% alms = rotate_alms(alms, rotate, varargin)
 % INPUTS
 %   alms        A Nx1 or Nx3 complex matrix of spherical harmonic coefficients.
 %
@@ -31,24 +31,25 @@ function alms = rotate_alm(alms, rotate, lmax, mmax)
 %                     11 = Ecliptic   (1950) -> Galactic   (1950)
 %                     12 = Galactic   (1950) -> Ecliptic   (1950)
 %
-%   lmax        Maximum degree of spherical harmonics. Optional if
-%               alm_getlmmax() can infer lmax from the size of alms.
-%   mmax        Maximum order of spherical harmonics. Optional if
-%               alm_getlmmax() can infer mmax fromthe size of alms.
+% KEY-VALUE PAIRS
+%   'lmax'      The maximum degree harmonic coefficient to compute. Optional if
+%               inferrable by alm_getlmmax().
+%
+%   'mmax'      The maximum order harmonic coefficient to compute. Optional if
+%               inferrable by alm_getlmmax().
 %
 % OUTPUTS
 %   alms        The given alms after coordinate rotation.
 %
 % EXAMPLE
 
-  if ~exist('lmax', 'var')
-    lmax = [];
-  end
-  if ~exist('mmax', 'var')
-    mmax = [];
-  end
+  p = inputParser();
+  addParameter(p, 'lmax', [], @(x) isnumeric(x) & isscalar(x));
+  addParameter(p, 'mmax', [], @(x) isnumeric(x) & isscalar(x));
+  parse(p, varargin{:});
+  opt = p.Results;
 
-  [lmax, mmax] = @CLASSPREFIX@alm_getlmmax(alms, lmax, mmax);
+  [lmax, mmax] = @CLASSPREFIX@alm_getlmmax(alms, opt.lmax, opt.mmax);
 
   if size(alms, 2) == 1
     % T-only alms - pass through empty/dummy complex alms as almsG & almsC
@@ -61,7 +62,7 @@ function alms = rotate_alm(alms, rotate, lmax, mmax)
     almsG = complex(double(alms(:,2)));
     almsC = complex(double(alms(:,3)));
   else
-    error('alms: Expected size 1 or 3 in second dimension, got %d', ...
+    error('rotate_alms: Expected alms to have size 1 or 3 in second dimension, got %d', ...
         size(alms, 2));
   end
 
