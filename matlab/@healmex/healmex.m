@@ -1,4 +1,8 @@
 classdef healmex < matlab.mixin.CustomDisplay
+  properties (Constant)
+    UNSEEN = single(-1.6375e30)
+  end
+
   methods (Static)
     ipix  = nest2ring(nside, ipix)
     ipix  = ring2nest(nside, ipix)
