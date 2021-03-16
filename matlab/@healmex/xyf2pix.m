@@ -1,14 +1,32 @@
-function ipix = xyf2pix(nside, order, x, y, f)
-% ipix = pix2xyf(nside, order, x, y, f)
+function ipix = xyf2pix(nside, x, y, f, varargin)
+% ipix = xyf2pix(nside, x, y, f, varargin)
 %
-% Calculates HEALPix pixel indices ipix in an Nside = nside map with ordering
-% scheme order corresponding to locations identified by the triples (x,y,face).
-% order may be 'RING' or 'NESTED'.
+% INPUTS
+%   nside       The HEALPix Nside parameter.
+%   x
+%   y
+%   f
+%
+% KEY-VALUE PAIRS
+%   'nest'      Defaults to false. If true, `ipix` are NESTED ordering pixels,
+%               otherwise assumes RING ordering.
+%
+% OUTPUT
+%   ipix        Pixel indices.
+%
+% EXAMPLE
+%   ipix = healmex.pix2xyf(512, x, y, f);
 
-  if ~exist('order','var') || isempty(order)
+  p = inputParser();
+  addParameter(p, 'nest', false, @islogical);
+  parse(p, varargin{:});
+  opt = p.Results;
+
+  if opt.nest
+    order = 'NESTED';
+  else
     order = 'RING';
   end
-
   ipix = libhealmex(int64(18), ...
       int64(nside), char(order), int32(x), int32(y), int32(f));
 end

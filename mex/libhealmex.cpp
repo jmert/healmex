@@ -190,7 +190,7 @@ public:
                 break;
 
             case id_pix2vec:
-                CHECK_NINOUT("pix2vec", 3, 1);
+                CHECK_NINOUT("pix2vec", 3, 3);
                 CHECK_INPUT_SCALAR("pix2vec", "nside", 1);
                 CHECK_INPUT_INT64("pix2vec", "nside", 1);
                 CHECK_INPUT_CHAR("pix2vec", "order", 2);
@@ -217,11 +217,13 @@ public:
                 break;
 
             case id_vec2pix:
-                CHECK_NINOUT("vec2pix", 3, 1);
+                CHECK_NINOUT("vec2pix", 5, 1);
                 CHECK_INPUT_SCALAR("vec2pix", "nside", 1);
                 CHECK_INPUT_INT64("vec2pix", "nside", 1);
                 CHECK_INPUT_CHAR("vec2pix", "order", 2);
-                CHECK_INPUT_DOUBLE("vec2pix", "vec", 3);
+                CHECK_INPUT_DOUBLE("vec2pix", "x", 3);
+                CHECK_INPUT_DOUBLE("vec2pix", "y", 3);
+                CHECK_INPUT_DOUBLE("vec2pix", "z", 3);
                 mex_vec2pix(outputs, inputs);
                 break;
 
@@ -545,10 +547,9 @@ DISPATCH_FN(pix2vec) {
 
     auto ipix = buffer<int64_t>(ml_ipix);
     auto npix = ml_ipix.getNumberOfElements();
-    auto vec  = factory.createBuffer<double>(3 * npix);
-    auto x = &vec[0];
-    auto y = &vec[npix];
-    auto z = &vec[2*npix];
+    auto x = factory.createBuffer<double>(npix);
+    auto y = factory.createBuffer<double>(npix);
+    auto z = factory.createBuffer<double>(npix);
 
     #pragma omp parallel for
     for (size_t ii = 0; ii < npix; ++ii) {
@@ -558,7 +559,9 @@ DISPATCH_FN(pix2vec) {
         z[ii] = r.z;
     }
 
-    outputs[0] = factory.createArrayFromBuffer({npix, 3}, move(vec));
+    outputs[0] = factory.createArrayFromBuffer({npix}, move(x));
+    outputs[1] = factory.createArrayFromBuffer({npix}, move(y));
+    outputs[2] = factory.createArrayFromBuffer({npix}, move(z));
 }
 
 DISPATCH_FN(pix2zphi) {
@@ -603,18 +606,19 @@ DISPATCH_FN(pix2ang) {
 
 DISPATCH_FN(vec2pix) {
     healpix base = nsideorder(inputs[1], inputs[2]);
-    TypedArray<double>  ml_vec   = inputs[3];
+    TypedArray<double> ml_x = inputs[3];
+    TypedArray<double> ml_y = inputs[4];
+    TypedArray<double> ml_z = inputs[5];
 
-    auto dims  = ml_vec.getDimensions();
-    if (dims.size() != 2 || dims[1] != 3) {
-        error("vec2pix: vec must be a N-by-3 matrix of Cartesian coordinates");
+    auto dims = ml_x.getDimensions();
+    auto npix = ml_x.getNumberOfElements();
+    if (dims != ml_y.getDimensions() || dims != ml_z.getDimensions()) {
+        error("vec2pix: x, y, and z must be same sizes");
     }
-    auto npix  = dims[0];
-    auto vec   = buffer<double>(ml_vec);
+    auto x = buffer<double>(ml_x);
+    auto y = buffer<double>(ml_y);
+    auto z = buffer<double>(ml_z);
     auto ipix  = factory.createBuffer<int64_t>(npix);
-    auto x = &vec[0];
-    auto y = &vec[npix];
-    auto z = &vec[2*npix];
 
     #pragma omp parallel for
     for (size_t ii = 0; ii < npix; ++ii) {
