@@ -1,12 +1,33 @@
-function r = pix2vec(nside, order, ipix)
-% r = pix2vec(nside, order, ipix)
+function [x, y, z] = pix2vec(nside, ipix, varargin)
+% [x, y, z] = pix2vec(nside, ipix, varargin)
 %
-% Calculates HEALPix pixel center locations for pixel indices ipix in an
-% Nside = nside map with ordering scheme order, returning the unit vector r
-% pointing to the pixel center as an N-by-3 matrix of x, y, and z
-% Cartesian coordinates. order may be 'RING' or 'NESTED'.
+% INPUTS
+%   nside       The HEALPix Nside parameter.
+%   ipix        Pixel indices.
+%
+% KEY-VALUE PAIRS
+%   'nest'      Defaults to false. If true, `ipix` are NESTED ordering pixels,
+%               otherwise assumes RING ordering.
+%
+% OUTPUT
+%   x           Cartesian X components of pointing unit vectors.
+%   y           Cartesian Y components of pointing unit vectors.
+%   z           Cartesian Z components of pointing unit vectors.
+%
+% EXAMPLE
+%   [x, y, z] = healmex.pix2vec(512, 0:4*512-1);
 
-  r = libhealmex(int64(11), ...
+  p = inputParser();
+  addParameter(p, 'nest', false, @islogical);
+  parse(p, varargin{:});
+  opt = p.Results;
+
+  if opt.nest
+    order = 'NESTED';
+  else
+    order = 'RING';
+  end
+  [x,y,z] = libhealmex(int64(11), ...
       int64(nside), char(order), int64(ipix));
 end
 
