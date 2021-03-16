@@ -1,8 +1,5 @@
-function map = alm2map(alms, nside, order, lmax, mmax)
-% map = alm2map(alms, nside, order, lmax, mmax)
-%
-% Synthesizes map(s) from the provided alms at Nside = nside and for the
-% pixelization ordering order.
+function maps = alm2map(alms, nside, varargin)
+% maps = alm2map(alms, nside, varargin)
 %
 % INPUTS
 %   alms    The spherical harmonic coefficients of map. If map is Nx1, then
@@ -13,33 +10,27 @@ function map = alm2map(alms, nside, order, lmax, mmax)
 %
 %   nside   HEALPix Nside of output map to synthesize.
 %
-%   order   HEALPix map pixelization order, either 'RING' or 'NESTED'.
-%           Defaults to 'RING'.
-%
-%   lmax    The maximum degree harmonic coefficient to compute. Optional if
+% KEY-VALUE PAIRS
+%   'lmax'  The maximum degree harmonic coefficient to compute. Optional if
 %           inferrable by alm_getlmmax().
 %
-%   mmax    The maximum order harmonic coefficient to compute. Optional if
-%           inferrable by alm_getlmmax()l
+%   'mmax'  The maximum order harmonic coefficient to compute. Optional if
+%           inferrable by alm_getlmmax().
 %
 % OUTPUTS
-%   map     An Nx1 or Nx3 matrix of map pixel values. Column 1 is assumed to
+%   maps    An Nx1 or Nx3 matrix of map pixel values. Column 1 is assumed to
 %           be the intensity map, and columns 2 and 3 are assumed to be the
 %           Stokes Q and U fields, respectively.
 %
 % EXAMPLE
 
-  if ~exist('order', 'var') || isempty(order)
-    order = 'RING';
-  end
-  if ~exist('lmax', 'var')
-    lmax = [];
-  end
-  if ~exist('mmax', 'var')
-    mmax = [];
-  end
+  p = inputParser();
+  addParameter(p, 'lmax', [], @(x) isnumeric(x) & isscalar(x));
+  addParameter(p, 'mmax', [], @(x) isnumeric(x) & isscalar(x));
+  parse(p, varargin{:});
+  opt = p.Results;
 
-  [lmax, mmax] = @CLASSPREFIX@alm_getlmmax(alms, lmax, mmax);
+  [lmax, mmax] = @CLASSPREFIX@alm_getlmmax(alms, opt.lmax, opt.mmax);
 
   if size(alms, 2) == 1
     % T-only alms - pass through empty/dummy complex alms as almsG & almsC
@@ -59,10 +50,10 @@ function map = alm2map(alms, nside, order, lmax, mmax)
   [mapT, mapQ, mapU] = libhealmex(int64(55), ...
       int32(lmax), int32(mmax), ...
       complex(double(almsT)), complex(double(almsG)), complex(double(almsC)), ...
-      int64(nside), char(order));
+      int64(nside));
 
   if size(alms, 2) == 1
-    map = mapT;
+    maps = mapT;
   else
-    map = [mapT mapQ mapU];
+    maps = [mapT mapQ mapU];
 end

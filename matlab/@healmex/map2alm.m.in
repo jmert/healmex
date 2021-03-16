@@ -1,77 +1,73 @@
-function alms = map2alm(map, order, lmax, mmax, nside, niter)
-% alms = map2alm(map, order, lmax, mmax, nside, niter)
+function alms = map2alm(maps, varargin)
+% alms = map2alm(maps, varargin)
 %
 % INPUTS
-%   map     An Nx1 or Nx3 matrix of map pixel values. Column 1 is assumed to
-%           be the intensity map, and columns 2 and 3 are assumed to be the
-%           Stokes Q and U fields, respectively.
+%   maps    A vector (Nx1) or matrix (Nx3) of maps pixel values. Must be in
+%           RING order.
 %
-%   order   HEALPix map pixelization order, either 'RING' or 'NESTED'.
-%           Defaults to 'RING'.
-%
-%   lmax    The maximum degree harmonic coefficient to compute. Defaults to
+% KEY-VALUE PAIRS
+%   'lmax'  The maximum degree harmonic coefficient to compute. Defaults to
 %           3*nside-1 if not provided.
 %
-%   mmax    The maximum order harmonic coefficient to compute. Defaults to
+%   'mmax'  The maximum order harmonic coefficient to compute. Defaults to
 %           lmax if not provided.
 %
-%   nside   HEALPix nside of the map. Inferred from length of dimension one
-%           of map if not provided.
-%
-%   niter   Number of iterations to perform in convergence to spherical
-%           harmonic coefficients. Defaults to 1.
+%   'iter'  Defaults to 3. Number of iterations to perform in convergence to
+%           spherical harmonic coefficients, where 0 iterations is a single
+%           analysis transform without any iterative updates.
 %
 % OUTPUTS
-%   alms    The spherical harmonic coefficients of map. If map is Nx1, then
+%   alms    The spherical harmonic coefficients of maps. If maps is Nx1, then
 %           alms is an Mx1 vector of scalar (non-spin) coefficients (i.e.
-%           temperature). If map is Nx3, the column 1 is the scalar (non-spin)
+%           temperature). If maps is Nx3, the column 1 is the scalar (non-spin)
 %           coefficients, and columsn 2 and 3 are the gradient and curl,
 %           respectively, spin-2 transforms.
 %
 % EXAMPLE
 %
 
-  if ~exist('order', 'var') || isempty(order)
-    order = 'RING';
-  end
-  if ~exist('niter', 'var') || isempty(niter)
-    niter = 1;
-  end
+  p = inputParser();
+  addParameter(p, 'lmax', [], @(x) isnumeric(x) & isscalar(x));
+  addParameter(p, 'mmax', [], @(x) isnumeric(x) & isscalar(x));
+  addParameter(p, 'iter',  3, @(x) isnumeric(x) & isscalar(x) & x >= 0);
+  parse(p, varargin{:});
+  opt = p.Results;
 
-  if ~exist('nside', 'var') || isempty(nside)
-    nside = @CLASSPREFIX@npix2nside(size(map, 1));
-  end
+  lmax = opt.lmax;
+  mmax = opt.mmax;
+  iter = opt.iter;
+  nside = @CLASSPREFIX@npix2nside(size(maps, 1));
 
-  if ~exist('lmax', 'var') || isempty(lmax)
+  if isempty(lmax)
     lmax = 3 * nside - 1;
   end
-  if ~exist('mmax', 'var') || isempty(mmax)
+  if isempty(mmax)
     mmax = lmax;
   end
 
   % TODO: Allow real ring weights.
   rwghts = ones(4 * nside - 1, 1);
 
-  if size(map, 2) == 1
+  if size(maps, 2) == 1
     % T-only alms - pass through empty/dummy pol maps
-    mapT = map(:,1);
+    mapT = maps(:,1);
     mapQ = double([]);
     mapU = double([]);
-  elseif size(map, 2) == 3
+  elseif size(maps, 2) == 3
     % T + Pol maps case
-    mapT = map(:,1);
-    mapQ = map(:,2);
-    mapU = map(:,3);
+    mapT = maps(:,1);
+    mapQ = maps(:,2);
+    mapU = maps(:,3);
   else
-    error('map: Expected size 1 or 3 in second dimension, got %d', ...
-        size(map, 2));
+    error('map2alm: Expected maps to have size 1 or 3 in second dimension, got %d', ...
+        size(maps, 2));
   end
 
   [almsT,almsG,almsC] = libhealmex(int64(53), ...
-      int64(nside), char(order), double(mapT), double(mapQ), double(mapU), ...
-      int32(lmax), int32(mmax), double(rwghts), int32(niter));
+      int64(nside), double(mapT), double(mapQ), double(mapU), ...
+      int32(lmax), int32(mmax), double(rwghts), int32(iter));
 
-  if size(map, 2) == 1
+  if size(maps, 2) == 1
     alms = almsT;
   else
     alms = [almsT almsG almsC];
