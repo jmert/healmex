@@ -19,11 +19,9 @@ classdef healmex < matlab.mixin.CustomDisplay
     ipix = xyf2pix(nside, x, y, f, varargin)
     ipix = zphi2pix(nside, z, phi, varargin)
 
-    alms = map2alm(map, order, lmax, mmax, nside, niter)
-    map = alm2map(alms, nside, order, lmax, mmax)
-    map = alm2map_der1(alms, nside, lmax, mmax)
-    alms = hpx_map2alm(nside, order, map, lmax, mmax, rwghts, iter)
-    [almsT,almsG,almsC] = hpx_map2alm_pol(nside, order, mapT, mapQ, mapU, lmax, mmax, rwghts, iter)
+    alms = map2alm(map, varargin)
+    maps = alm2map(alms, nside, varargin)
+    maps = alm2map_der1(alms, nside, varargin)
 
     [lmax, mmax] = alm_getlmmax(alms, lmax, mmax)
     nel = alm_getn(lmax, mmax)

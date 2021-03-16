@@ -1,5 +1,5 @@
-function map = alm2map_der1(alms, nside, lmax, mmax)
-% map = alm2map_der1(alms, nside, lmax, mmax)
+function maps = alm2map_der1(alms, nside, varargin)
+% maps = alm2map_der1(alms, nside, varargin)
 %
 % Synthesizes a map and its first derivatives from the provided alms at
 % Nisde = nside with RING ordered pixelization.
@@ -9,11 +9,12 @@ function map = alm2map_der1(alms, nside, lmax, mmax)
 %
 %   nside   HEALPix Nside of output map to synthesize.
 %
-%   lmax    The maximum degree harmonic coefficient to compute. Optional if
+% KEY-VALUE PAIRS
+%   'lmax'  The maximum degree harmonic coefficient to compute. Optional if
 %           inferrable by alm_getlmmax().
 %
-%   mmax    The maximum order harmonic coefficient to compute. Optional if
-%           inferrable by alm_getlmmax()l
+%   'mmax'  The maximum order harmonic coefficient to compute. Optional if
+%           inferrable by alm_getlmmax().
 %
 % OUTPUTS
 %   map     An Nx3 matrix of map pixel values. Each of the columns are:
@@ -23,23 +24,21 @@ function map = alm2map_der1(alms, nside, lmax, mmax)
 %
 % EXAMPLE
 
-  if ~exist('lmax', 'var')
-    lmax = [];
-  end
-  if ~exist('mmax', 'var')
-    mmax = [];
-  end
+  p = inputParser();
+  addParameter(p, 'lmax', [], @(x) isnumeric(x) & isscalar(x));
+  addParameter(p, 'mmax', [], @(x) isnumeric(x) & isscalar(x));
+  parse(p, varargin{:});
+  opt = p.Results;
 
-  [lmax, mmax] = @CLASSPREFIX@alm_getlmmax(alms, lmax, mmax);
+  [lmax, mmax] = @CLASSPREFIX@alm_getlmmax(alms, opt.lmax, opt.mmax);
 
   if size(alms, 2) ~= 1
-    error('alms: Expected size 1 in second dimension, got %d', ...
+    error('alm2map_der1: Expected alms to have size 1 in second dimension, got %d', ...
         size(alms, 2));
   end
 
   [map, mapdth, mapdph] = libhealmex(int64(56), ...
       int32(lmax), int32(mmax), complex(double(alms)), ...
       int64(nside));
-
-  map = [map mapdth mapdph];
+  maps = [map mapdth mapdph];
 end

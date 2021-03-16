@@ -268,25 +268,24 @@ public:
                 break;
 
             case id_map2alm_iter:
-                CHECK_NINOUT("map2alm_iter", 9, 3);
+                CHECK_NINOUT("map2alm_iter", 8, 3);
                 CHECK_INPUT_SCALAR("map2alm_iter", "nside", 1);
                 CHECK_INPUT_INT64("map2alm_iter", "nside", 1);
-                CHECK_INPUT_CHAR("map2alm_iter", "order", 2);
-                CHECK_INPUT_DOUBLE("map2alm_iter", "mapT", 3);
-                CHECK_INPUT_DOUBLE("map2alm_iter", "mapQ", 4);
-                CHECK_INPUT_DOUBLE("map2alm_iter", "mapU", 5);
-                CHECK_INPUT_SCALAR("map2alm_iter", "lmax", 6);
-                CHECK_INPUT_INT32("map2alm_iter", "lmax", 6);
-                CHECK_INPUT_SCALAR("map2alm_iter", "mmax", 7);
-                CHECK_INPUT_INT32("map2alm_iter", "mmax", 7);
-                CHECK_INPUT_DOUBLE("map2alm_iter", "rwghts", 8);
-                CHECK_INPUT_SCALAR("map2alm_iter", "iter", 9);
-                CHECK_INPUT_INT32("map2alm_iter", "iter", 9);
+                CHECK_INPUT_DOUBLE("map2alm_iter", "mapT", 2);
+                CHECK_INPUT_DOUBLE("map2alm_iter", "mapQ", 3);
+                CHECK_INPUT_DOUBLE("map2alm_iter", "mapU", 4);
+                CHECK_INPUT_SCALAR("map2alm_iter", "lmax", 5);
+                CHECK_INPUT_INT32("map2alm_iter", "lmax", 5);
+                CHECK_INPUT_SCALAR("map2alm_iter", "mmax", 6);
+                CHECK_INPUT_INT32("map2alm_iter", "mmax", 6);
+                CHECK_INPUT_DOUBLE("map2alm_iter", "rwghts", 7);
+                CHECK_INPUT_SCALAR("map2alm_iter", "iter", 8);
+                CHECK_INPUT_INT32("map2alm_iter", "iter", 8);
                 mex_map2alm_iter(outputs, inputs);
                 break;
 
             case id_alm2map:
-                CHECK_NINOUT("alm2map", 7, 3);
+                CHECK_NINOUT("alm2map", 6, 3);
                 CHECK_INPUT_SCALAR("alm2map", "lmax", 1);
                 CHECK_INPUT_INT32("alm2map", "lmax", 1);
                 CHECK_INPUT_SCALAR("alm2map", "mmax", 2);
@@ -296,7 +295,6 @@ public:
                 CHECK_INPUT_COMPLEX64("alm2map", "almsC", 5);
                 CHECK_INPUT_SCALAR("alm2map", "nside", 6);
                 CHECK_INPUT_INT64("alm2map", "nside", 6);
-                CHECK_INPUT_CHAR("alm2map", "order", 7);
                 mex_alm2map(outputs, inputs);
                 break;
 
@@ -722,14 +720,14 @@ DISPATCH_FN(xyf2pix) {
 }
 
 DISPATCH_FN(map2alm_iter) {
-    healpix base = nsideorder(inputs[1], inputs[2]);
-    auto [buf_mapT, len_mapT] = bufferlen<double>(inputs[3]);
-    auto [buf_mapQ, len_mapQ] = bufferlen<double>(inputs[4]);
-    auto [buf_mapU, len_mapU] = bufferlen<double>(inputs[5]);
-    auto lmax = scalar<int32_t>(inputs[6]);
-    auto mmax = scalar<int32_t>(inputs[7]);
-    auto [buf_wght, len_wght] = bufferlen<double>(inputs[8]);
-    auto iter = scalar<int32_t>(inputs[9]);
+    healpix base = nsideorder(inputs[1]);
+    auto [buf_mapT, len_mapT] = bufferlen<double>(inputs[2]);
+    auto [buf_mapQ, len_mapQ] = bufferlen<double>(inputs[3]);
+    auto [buf_mapU, len_mapU] = bufferlen<double>(inputs[4]);
+    auto lmax = scalar<int32_t>(inputs[5]);
+    auto mmax = scalar<int32_t>(inputs[6]);
+    auto [buf_wght, len_wght] = bufferlen<double>(inputs[7]);
+    auto iter = scalar<int32_t>(inputs[8]);
 
     if (len_mapQ != len_mapU) {
         error("map2alm_iter: mapQ and mapU must have the same length");
@@ -791,7 +789,7 @@ DISPATCH_FN(alm2map) {
     auto [buf_almsT, len_almsT] = bufferlen<complex64>(inputs[3]);
     auto [buf_almsG, len_almsG] = bufferlen<complex64>(inputs[4]);
     auto [buf_almsC, len_almsC] = bufferlen<complex64>(inputs[5]);
-    healpix base = nsideorder(inputs[6], inputs[7]);
+    healpix base = nsideorder(inputs[6]);
 
     if (len_almsG != len_almsC) {
         error("rotate_alm: almsG and almsC must have the same size");
