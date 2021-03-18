@@ -1,5 +1,5 @@
-function ipix = xyf2pix(nside, x, y, f, varargin)
-% ipix = xyf2pix(nside, x, y, f, varargin)
+function ipix = xyf2pix(nside, x, y, f, opt)
+% ipix = xyf2pix(nside, x, y, f, ...)
 %
 % INPUTS
 %   nside       The HEALPix Nside parameter.
@@ -17,10 +17,13 @@ function ipix = xyf2pix(nside, x, y, f, varargin)
 % EXAMPLE
 %   ipix = healmex.pix2xyf(512, x, y, f);
 
-  p = inputParser();
-  addParameter(p, 'nest', false, @islogical);
-  parse(p, varargin{:});
-  opt = p.Results;
+  arguments
+    nside    (1,1) {mustBeNumeric}
+    x              {mustBeNumeric}
+    y              {mustBeNumeric}
+    f              {mustBeNumeric}
+    opt.nest (1,1) logical = false
+  end
 
   if opt.nest
     order = 'NESTED';

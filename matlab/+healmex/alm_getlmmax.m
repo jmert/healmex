@@ -4,11 +4,10 @@ function [lmax, mmax] = alm_getlmmax(alms, lmax, mmax)
 % Infers the lmax and/or mmax from the alms vector (or length of the
 % first dimension if alms is a matrix).
 
-  if ~exist('lmax', 'var')
-    lmax = [];
-  end
-  if ~exist('mmax', 'var')
-    mmax = [];
+  arguments
+    alms (:,:)
+    lmax       {mustBeNumeric,mustBeScalarOrEmpty} = []
+    mmax       {mustBeNumeric,mustBeScalarOrEmpty} = []
   end
 
   if isempty(lmax)

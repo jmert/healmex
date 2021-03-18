@@ -1,5 +1,5 @@
-function maps = alm2map(alms, nside, varargin)
-% maps = alm2map(alms, nside, varargin)
+function maps = alm2map(alms, nside, opt)
+% maps = alm2map(alms, nside, ...)
 %
 % INPUTS
 %   alms    The spherical harmonic coefficients of map. If map is Nx1, then
@@ -24,11 +24,12 @@ function maps = alm2map(alms, nside, varargin)
 %
 % EXAMPLE
 
-  p = inputParser();
-  addParameter(p, 'lmax', [], @(x) isnumeric(x) & isscalar(x));
-  addParameter(p, 'mmax', [], @(x) isnumeric(x) & isscalar(x));
-  parse(p, varargin{:});
-  opt = p.Results;
+  arguments
+    alms     (:,:) {mustBeNumeric}
+    nside    (1,1) {mustBeInteger,mustBeNonnegative}
+    opt.lmax       {mustBeNumeric,mustBeScalarOrEmpty} = []
+    opt.mmax       {mustBeNumeric,mustBeScalarOrEmpty} = []
+  end
 
   [lmax, mmax] = @PACKAGEPREFIX@alm_getlmmax(alms, opt.lmax, opt.mmax);
 
@@ -43,8 +44,8 @@ function maps = alm2map(alms, nside, varargin)
     almsG = complex(double(alms(:,2)));
     almsC = complex(double(alms(:,3)));
   else
-    error('alms: Expected size 1 or 3 in second dimension, got %d', ...
-        size(alms, 2));
+    throwAsCaller(MException('healmex:alm2map:dimensionMismatch', ...
+        'Expected alms to have size 1 or 3 in second dimension, got %d', size(alms, 2)));
   end
 
   [mapT, mapQ, mapU] = libhealmex(int64(55), ...

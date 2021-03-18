@@ -1,5 +1,5 @@
-function ipix = vec2pix(nside, x, y, z, varargin)
-% ipix = vec2pix(nside, order, x, y, z, varargin)
+function ipix = vec2pix(nside, x, y, z, opt)
+% ipix = vec2pix(nside, x, y, z, ...)
 %
 % INPUTS
 %   nside       The HEALPix Nside parameter.
@@ -18,10 +18,13 @@ function ipix = vec2pix(nside, x, y, z, varargin)
 %   [x, y, z] = sph2cart(0.0:0.1:pi/2, 0.0:0.05:pi/4, 1);
 %   ipix = healmex.pix2vec(512, x, y, z);
 
-  p = inputParser();
-  addParameter(p, 'nest', false, @islogical);
-  parse(p, varargin{:});
-  opt = p.Results;
+  arguments
+    nside    (1,1) {mustBeNumeric}
+    x              {mustBeNumeric}
+    y              {mustBeNumeric}
+    z              {mustBeNumeric}
+    opt.nest (1,1) logical = false
+  end
 
   if opt.nest
     order = 'NESTED';

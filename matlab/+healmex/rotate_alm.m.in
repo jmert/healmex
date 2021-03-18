@@ -1,5 +1,5 @@
-function alms = rotate_alm(alms, rotate, varargin)
-% alms = rotate_alms(alms, rotate, varargin)
+function alms = rotate_alm(alms, rotate, opt)
+% alms = rotate_alms(alms, rotate, ...)
 % INPUTS
 %   alms        A Nx1 or Nx3 complex matrix of spherical harmonic coefficients.
 %
@@ -43,11 +43,12 @@ function alms = rotate_alm(alms, rotate, varargin)
 %
 % EXAMPLE
 
-  p = inputParser();
-  addParameter(p, 'lmax', [], @(x) isnumeric(x) & isscalar(x));
-  addParameter(p, 'mmax', [], @(x) isnumeric(x) & isscalar(x));
-  parse(p, varargin{:});
-  opt = p.Results;
+  arguments
+    alms     (:,:) {mustBeNumeric}
+    rotate
+    opt.lmax       {mustBeNumeric,mustBeScalarOrEmpty} = []
+    opt.mmax       {mustBeNumeric,mustBeScalarOrEmpty} = []
+  end
 
   [lmax, mmax] = @PACKAGEPREFIX@alm_getlmmax(alms, opt.lmax, opt.mmax);
 
@@ -62,8 +63,8 @@ function alms = rotate_alm(alms, rotate, varargin)
     almsG = complex(double(alms(:,2)));
     almsC = complex(double(alms(:,3)));
   else
-    error('rotate_alms: Expected alms to have size 1 or 3 in second dimension, got %d', ...
-        size(alms, 2));
+    throwAsCaller(MException('healmex:rotate_alm:dimensionMismatch', ...
+        'Expected alms to have size 1 or 3 in second dimension, got %d', size(alms, 2)));
   end
 
   % Rotate by coordinate transformation name
