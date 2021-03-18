@@ -1,5 +1,5 @@
-function [z, phi] = pix2zphi(nside, ipix, varargin)
-% [z, phi] = pix2zphi(nside, ipix, varargin)
+function [z, phi] = pix2zphi(nside, ipix, opt)
+% [z, phi] = pix2zphi(nside, ipix, ...)
 %
 % INPUTS
 %   nside       The HEALPix Nside parameter.
@@ -16,10 +16,11 @@ function [z, phi] = pix2zphi(nside, ipix, varargin)
 % EXAMPLE
 %   [z, phi] = healmex.pix2zphi(512, (1000:2000)');
 
-  p = inputParser();
-  addParameter(p, 'nest', false, @islogical);
-  parse(p, varargin{:});
-  opt = p.Results;
+  arguments
+    nside     (1,1) {mustBeNumeric}
+    ipix            {mustBeNumeric}
+    opt.nest  (1,1) logical = false
+  end
 
   if opt.nest
     order = 'NESTED';

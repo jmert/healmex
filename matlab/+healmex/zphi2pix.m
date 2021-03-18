@@ -1,11 +1,32 @@
-function ipix = zphi2pix(nside, order, z, phi)
-% ipix = zphi2pix(nside, order, z, phi)
+function ipix = zphi2pix(nside, z, phi, opt)
+% ipix = zphi2pix(nside, z, phi, ...)
 %
-% Calculates HEALPix pixel indices ipix (for an Nside = nside map with ordering
-% scheme order) which contain the coordinate points (z, phi), where z is a
-% Cartesian coordinate and phi is the azimuth angle in radians. order may be
-% 'RING' or 'NESTED'.
+% INPUTS
+%   nside       The HEALPix Nside parameter.
+%   z           The cosine of the colatitude (-1 <= z <= 1).
+%   phi         The azimuth phi in radians (0 <= phi < 2*pi).
+%
+% KEY-VALUE PAIRS
+%   'nest'      Defaults to false. If true, `ipix` are NESTED ordering pixels,
+%               otherwise assumes RING ordering.
+%
+% OUTPUT
+%   ipix        Pixel indices.
+%
+% EXMAPLE
 
+  arguments
+    nside     (1,1) {mustBeNumeric}
+    z               {mustBeNumeric}
+    phi             {mustBeNumeric}
+    opt.nest  (1,1) logical = false
+  end
+
+  if opt.nest
+    order = 'NESTED';
+  else
+    order = 'RING';
+  end
   ipix = libhealmex(int64(15), ...
       int64(nside), char(order), double(z), double(phi));
 end

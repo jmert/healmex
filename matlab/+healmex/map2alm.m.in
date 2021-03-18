@@ -1,5 +1,5 @@
 function alms = map2alm(maps, varargin)
-% alms = map2alm(maps, varargin)
+% alms = map2alm(maps, ...)
 %
 % INPUTS
 %   maps    A vector (Nx1) or matrix (Nx3) of maps pixel values. Must be in
@@ -24,14 +24,13 @@ function alms = map2alm(maps, varargin)
 %           respectively, spin-2 transforms.
 %
 % EXAMPLE
-%
 
-  p = inputParser();
-  addParameter(p, 'lmax', [], @(x) isnumeric(x) & isscalar(x));
-  addParameter(p, 'mmax', [], @(x) isnumeric(x) & isscalar(x));
-  addParameter(p, 'iter',  3, @(x) isnumeric(x) & isscalar(x) & x >= 0);
-  parse(p, varargin{:});
-  opt = p.Results;
+  arguments
+    maps     (:,:) {mustBeNumeric}
+    opt.lmax       {mustBeNumeric,mustBeScalarOrEmpty} = []
+    opt.mmax       {mustBeNumeric,mustBeScalarOrEmpty} = []
+    opt.iter       {mustBeNumeric,mustBeScalarOrEmpty} = 3
+  end
 
   lmax = opt.lmax;
   mmax = opt.mmax;
@@ -59,8 +58,8 @@ function alms = map2alm(maps, varargin)
     mapQ = maps(:,2);
     mapU = maps(:,3);
   else
-    error('map2alm: Expected maps to have size 1 or 3 in second dimension, got %d', ...
-        size(maps, 2));
+    throwAsCaller(MException('healmex:map2alm:dimensionMismatch', ...
+        'Expected maps to have size 1 or 3 in second dimension, got %d', size(maps, 2)));
   end
 
   [almsT,almsG,almsC] = libhealmex(int64(53), ...

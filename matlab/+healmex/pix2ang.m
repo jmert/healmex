@@ -1,5 +1,5 @@
-function [theta, phi] = pix2ang(nside, ipix, varargin)
-% [theta, phi] = pix2ang(nside, ipix, varargin)
+function [theta, phi] = pix2ang(nside, ipix, opt)
+% [theta, phi] = pix2ang(nside, ipix, ...)
 %
 % INPUTS
 %   nside       The HEALPix Nside parameter.
@@ -10,6 +10,7 @@ function [theta, phi] = pix2ang(nside, ipix, varargin)
 %               latitude coordinates [lon,lat] in degrees.
 %   'nest'      Defaults to false. If true, `ipix` are NESTED ordering pixels,
 %               otherwise assumes RING ordering.
+%
 % OUTPUT
 %   theta       If lonlat==true, the latitude in degrees (-90 <= lat <= 90),
 %               otherwise the colatitude in radians (0 <= theta <= pi).
@@ -19,11 +20,12 @@ function [theta, phi] = pix2ang(nside, ipix, varargin)
 % EXAMPLE
 %   [lon,lat] = healmex.pix2ang(512, (1000:2000)', 'lonlat', true);
 
-  p = inputParser();
-  addParameter(p, 'nest', false, @islogical);
-  addParameter(p, 'lonlat', false, @islogical);
-  parse(p, varargin{:});
-  opt = p.Results;
+  arguments
+    nside       (1,1) {mustBeNumeric}
+    ipix              {mustBeNumeric}
+    opt.lonlat  (1,1) logical = false
+    opt.nest    (1,1) logical = false
+  end
 
   if opt.nest
     order = 'NESTED';

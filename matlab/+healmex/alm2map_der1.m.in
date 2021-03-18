@@ -1,5 +1,5 @@
-function maps = alm2map_der1(alms, nside, varargin)
-% maps = alm2map_der1(alms, nside, varargin)
+function maps = alm2map_der1(alms, nside, opt)
+% maps = alm2map_der1(alms, nside, ...)
 %
 % Synthesizes a map and its first derivatives from the provided alms at
 % Nisde = nside with RING ordered pixelization.
@@ -24,18 +24,14 @@ function maps = alm2map_der1(alms, nside, varargin)
 %
 % EXAMPLE
 
-  p = inputParser();
-  addParameter(p, 'lmax', [], @(x) isnumeric(x) & isscalar(x));
-  addParameter(p, 'mmax', [], @(x) isnumeric(x) & isscalar(x));
-  parse(p, varargin{:});
-  opt = p.Results;
+  arguments
+    alms     (:,1) {mustBeNumeric}
+    nside    (1,1) {mustBeInteger,mustBeNonnegative}
+    opt.lmax       {mustBeNumeric,mustBeScalarOrEmpty} = []
+    opt.mmax       {mustBeNumeric,mustBeScalarOrEmpty} = []
+  end
 
   [lmax, mmax] = @PACKAGEPREFIX@alm_getlmmax(alms, opt.lmax, opt.mmax);
-
-  if size(alms, 2) ~= 1
-    error('alm2map_der1: Expected alms to have size 1 in second dimension, got %d', ...
-        size(alms, 2));
-  end
 
   [map, mapdth, mapdph] = libhealmex(int64(56), ...
       int32(lmax), int32(mmax), complex(double(alms)), ...

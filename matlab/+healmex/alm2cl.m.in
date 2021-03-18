@@ -1,5 +1,5 @@
-function cl = alm2cl(alms1, alms2, varargin)
-% cl = alm2cl(alms1, alms2, varargin)
+function cl = alm2cl(alms1, alms2, opt)
+% cl = alm2cl(alms1, alms2, ...)
 %
 % Computes the angular power [cross-]spectrum from the set of harmonic
 % coefficients alms1 and alms2. If alms2 is empty, then alms1 is used to
@@ -20,18 +20,17 @@ function cl = alm2cl(alms1, alms2, varargin)
 %   cl          The angular power spectrum <alms1 x alms2*>.
 %
 
-  p = inputParser();
-  addParameter(p, 'lmax', [], @(x) isnumeric(x) & isscalar(x));
-  addParameter(p, 'mmax', [], @(x) isnumeric(x) & isscalar(x));
-  parse(p, varargin{:});
-  opt = p.Results;
-
-  [lmax, mmax] = @PACKAGEPREFIX@alm_getlmmax(alms, opt.lmax, opt.mmax);
-  if ~exist('alms2', 'var') || isempty(alms2)
-    alms2 = alms1;
+  arguments
+    alms1    (:,1) {mustBeNumeric}
+    alms2    (:,1) {mustBeNumeric} = alms1
+    opt.lmax       {mustBeNumeric,mustBeScalarOrEmpty} = []
+    opt.mmax       {mustBeNumeric,mustBeScalarOrEmpty} = []
   end
+
+  [lmax, mmax] = @PACKAGEPREFIX@alm_getlmmax(alms1, opt.lmax, opt.mmax);
   if numel(alms1) ~= numel(alms2)
-    error('Mismatched sizes in alms1 and alms2');
+    throwAsCaller(MException('healmex:alm2cl:dimensionMismatch', ...
+        'Mismatched sizes in alms1 and alms2'));
   end
 
   cl = libhealmex(int64(61), ...

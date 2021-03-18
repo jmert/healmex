@@ -1,4 +1,4 @@
-function alms = almxfl(alms, fl, varargin)
+function alms = almxfl(alms, fl, opt)
 % alms = almxfl(alms, fl, varargin)
 %
 % Multiplies a set of alms by a vector fl.
@@ -18,11 +18,12 @@ function alms = almxfl(alms, fl, varargin)
 % OUTPUTS
 %   alms    Modified alms.
 
-  p = inputParser();
-  addParameter(p, 'lmax', [], @(x) isnumeric(x) & isscalar(x));
-  addParameter(p, 'mmax', [], @(x) isnumeric(x) & isscalar(x));
-  parse(p, varargin{:});
-  opt = p.Results;
+  arguments
+    alms     (:,:) {mustBeNumeric}
+    fl       (:,1) {mustBeNumeric}
+    opt.lmax       {mustBeNumeric,mustBeScalarOrEmpty} = []
+    opt.mmax       {mustBeNumeric,mustBeScalarOrEmpty} = []
+  end
 
   [lmax, mmax] = @PACKAGEPREFIX@alm_getlmmax(alms, opt.lmax, opt.mmax);
 

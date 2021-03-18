@@ -1,5 +1,5 @@
-function [x, y, z] = pix2vec(nside, ipix, varargin)
-% [x, y, z] = pix2vec(nside, ipix, varargin)
+function [x, y, z] = pix2vec(nside, ipix, opt)
+% [x, y, z] = pix2vec(nside, ipix, ...)
 %
 % INPUTS
 %   nside       The HEALPix Nside parameter.
@@ -17,10 +17,11 @@ function [x, y, z] = pix2vec(nside, ipix, varargin)
 % EXAMPLE
 %   [x, y, z] = healmex.pix2vec(512, 0:4*512-1);
 
-  p = inputParser();
-  addParameter(p, 'nest', false, @islogical);
-  parse(p, varargin{:});
-  opt = p.Results;
+  arguments
+    nside     (1,1) {mustBeNumeric}
+    ipix            {mustBeNumeric}
+    opt.nest  (1,1) logical = false
+  end
 
   if opt.nest
     order = 'NESTED';
