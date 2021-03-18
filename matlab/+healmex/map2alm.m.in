@@ -36,7 +36,7 @@ function alms = map2alm(maps, varargin)
   lmax = opt.lmax;
   mmax = opt.mmax;
   iter = opt.iter;
-  nside = @CLASSPREFIX@npix2nside(size(maps, 1));
+  nside = @PACKAGEPREFIX@npix2nside(size(maps, 1));
 
   if isempty(lmax)
     lmax = 3 * nside - 1;

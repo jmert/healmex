@@ -59,28 +59,24 @@ The following are available options which can be set during configuration.
 Each should be set in either the interact `ccmake` prompt or via a CMake
 variable definition with `cmake -DVAR=VALUE`.
 
-* **`ASCLASS`**: Defaults to `ON`. If `ON`, the package is installed as a
-  Matlab class. Otherwise if `OFF`, the package is installed as a classless
+* **`ASPACKAGE`**: Defaults to `ON`. If `ON`, the package is installed as a
+  Matlab package. Otherwise if `OFF`, the package is installed as a flat
   set of functions.
 
 ## Usage
 
-If installed as a Matlab class, the bindings in Matlab are presented as static
-methods of the `healmex` class. A list of all methods can be obtained with
-`disp(healmex)`:
-```matlab
->> disp(healmex)
-healmex with methods:
-    ...
-```
+If installed as a Matlab package, the bindings in Matlab are presented as
+methods within the `healmex` package namespace.
+
 Help is available for each binding
 ```matlab
 >> help healmex.pix2ang
-  [theta,phi] = pix2ang(nside, ipix)
+  [theta, phi] = pix2ang(nside, ipix, varargin)
 
-  Calculates HEALPix pixel center locations for pixel indices ipix in an
-  Nside = nside map, returning the colatitude theta and azimuth phi spherical
-  locations.
+  INPUTS
+    nside       The HEALPix Nside parameter.
+    ipix        Pixel indices.
+  ...
 ```
 with descriptions of the calling convention for each binding. For example,
 a call to `pix2ang` to convert pixel 72 in an Nside = 4 map to θ and φ
@@ -98,7 +94,7 @@ ph =
     0.7854
 
 ```
-If installed in the classless form, the `healmex.` prefix from calls should
+If installed in the flat form, the `healmex.` prefix from calls should
 be removed.
 
 [healpix]: https://healpix.sourceforge.io/index.php

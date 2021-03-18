@@ -49,7 +49,7 @@ function alms = rotate_alm(alms, rotate, varargin)
   parse(p, varargin{:});
   opt = p.Results;
 
-  [lmax, mmax] = @CLASSPREFIX@alm_getlmmax(alms, opt.lmax, opt.mmax);
+  [lmax, mmax] = @PACKAGEPREFIX@alm_getlmmax(alms, opt.lmax, opt.mmax);
 
   if size(alms, 2) == 1
     % T-only alms - pass through empty/dummy complex alms as almsG & almsC
