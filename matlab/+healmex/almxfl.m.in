@@ -24,7 +24,7 @@ function alms = almxfl(alms, fl, varargin)
   parse(p, varargin{:});
   opt = p.Results;
 
-  [lmax, mmax] = @CLASSPREFIX@alm_getlmmax(alms, opt.lmax, opt.mmax);
+  [lmax, mmax] = @PACKAGEPREFIX@alm_getlmmax(alms, opt.lmax, opt.mmax);
 
   alms = complex(double(alms));
   for ii = 1:size(alms,2)
