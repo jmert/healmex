@@ -21,13 +21,7 @@ function [z, phi] = pix2zphi(nside, ipix, opt)
     ipix            {mustBeNumeric}
     opt.nest  (1,1) logical = false
   end
-
-  if opt.nest
-    order = 'NESTED';
-  else
-    order = 'RING';
-  end
   [z, phi] = libhealmex(int64(12), ...
-      int64(nside), char(order), int64(ipix));
+      int64(nside), logical(opt.nest), int64(ipix));
 end
 

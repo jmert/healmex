@@ -27,14 +27,8 @@ function [theta, phi] = pix2ang(nside, ipix, opt)
     opt.nest    (1,1) logical = false
   end
 
-  if opt.nest
-    order = 'NESTED';
-  else
-    order = 'RING';
-  end
-
   [theta, phi] = libhealmex(int64(13), ...
-      int64(nside), char(order), int64(ipix));
+      int64(nside), logical(opt.nest), int64(ipix));
   if opt.lonlat
     theta = 90 - rad2deg(theta);
     phi = rad2deg(phi);

@@ -25,13 +25,7 @@ function ipix = vec2pix(nside, x, y, z, opt)
     z              {mustBeNumeric}
     opt.nest (1,1) logical = false
   end
-
-  if opt.nest
-    order = 'NESTED';
-  else
-    order = 'RING';
-  end
   ipix = libhealmex(int64(14), ...
-      int64(nside), char(order), double(x), double(y), double(z));
+      int64(nside), logical(opt.nest), double(x), double(y), double(z));
 end
 

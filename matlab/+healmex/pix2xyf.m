@@ -22,12 +22,6 @@ function [x, y, f] = pix2xyf(nside, ipix, opt)
     ipix            {mustBeNumeric}
     opt.nest  (1,1) logical = false
   end
-
-  if opt.nest
-    order = 'NESTED';
-  else
-    order = 'RING';
-  end
   [x, y, f] = libhealmex(int64(17), ...
-      int64(nside), char(order), int64(ipix));
+      int64(nside), logical(opt.nest), int64(ipix));
 end
