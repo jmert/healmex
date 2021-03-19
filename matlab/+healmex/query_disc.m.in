@@ -1,0 +1,33 @@
+function ipix = query_disc(nside, rvec, radius, opt)
+% ipix = query_disc(nside, rvec, radius, opt)
+%
+% INPUTS
+%   nside       The HEALPix Nside parameter.
+%   rvec        A unit pointing vector on the sphere.
+%   radius      Radius to query, in radians.
+%
+% KEY-VALUE PAIRS
+%   'deg'       Defaults to false. If true, `radius` is in degrees.
+%   'inclusive' Defaults to false.
+%   'nest'      Defaults to false. If true, `ipix` are NESTED ordering pixels,
+%               otherwise RING ordering.
+%
+% OUTPUT
+%   ipix        Pixel indices.
+
+  arguments
+    nside         (1,1) {mustBeInteger,mustBeNonnegative}
+    rvec          (1,3) {mustBeNumeric}
+    radius        (1,1) {mustBeNumeric}
+    opt.deg       (1,1) logical = false
+    opt.inclusive (1,1) logical = false
+    opt.nest      (1,1) logical = false
+  end
+
+  if opt.deg
+    radius = deg2rad(radius)
+  end
+  ipix = libhealmex(int64(19), ...
+      int64(nside), logical(opt.nest), double(rvec), double(radius), ...
+      logical(opt.inclusive));
+end

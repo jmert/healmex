@@ -10,6 +10,7 @@
 #include <alm_healpix_tools.h>
 #include <alm_powspec_tools.h>
 #include <powspec.h>
+#include <rangeset.h>
 #include <rotmatrix.h>
 
 using namespace std;
@@ -78,6 +79,7 @@ enum libhealpix_mex_calls {
     id_ang2pix          = 16,
     id_pix2xyf          = 17,
     id_xyf2pix          = 18,
+    id_query_disc       = 19,
     id_map2alm_iter     = 53,
     id_alm2map          = 55,
     id_alm2map_der1     = 56,
@@ -280,6 +282,21 @@ public:
                 mex_xyf2pix(outputs, inputs);
                 break;
 
+            case id_query_disc:
+                CHECK_NINOUT("query_disc", 5, 1);
+                CHECK_INPUT_SCALAR("query_disc", "nside", 1);
+                CHECK_INPUT_INT64("query_disc", "nside", 1);
+                CHECK_INPUT_SCALAR("query_disc", "order", 2);
+                CHECK_INPUT_BOOL("query_disc", "order", 2);
+                CHECK_INPUT_VECTOR("query_disc", "rvec", 3);
+                CHECK_INPUT_DOUBLE("query_disc", "rvec", 3);
+                CHECK_INPUT_SCALAR("query_disc", "radius", 4);
+                CHECK_INPUT_DOUBLE("query_disc", "radius", 4);
+                CHECK_INPUT_SCALAR("query_disc", "inclusive", 5);
+                CHECK_INPUT_BOOL("query_disc", "inclusive", 5);
+                mex_query_disc(outputs, inputs);
+                break;
+
             case id_map2alm_iter:
                 CHECK_NINOUT("map2alm_iter", 8, 3);
                 CHECK_INPUT_SCALAR("map2alm_iter", "nside", 1);
@@ -412,6 +429,7 @@ private:
     DISPATCH_FN(ang2pix);
     DISPATCH_FN(pix2xyf);
     DISPATCH_FN(xyf2pix);
+    DISPATCH_FN(query_disc);
 
     DISPATCH_FN(map2alm_iter);
     DISPATCH_FN(alm2map);
@@ -730,6 +748,41 @@ DISPATCH_FN(xyf2pix) {
     }
 
     outputs[0] = factory.createArrayFromBuffer({npix}, move(ipix));
+}
+
+DISPATCH_FN(query_disc) {
+    healpix base = nsideorder(inputs[1], inputs[2]);
+    auto [buf_rvec, len_rvec] = bufferlen<double>(inputs[3]);
+    auto radius = scalar<double>(inputs[4]);
+    auto inclusive = scalar<bool>(inputs[5]);
+
+    if (len_rvec != 3) {
+        error("query_disc: rvec must be length 3 vector");
+    }
+    if (radius < 0) {
+        error("query_disc: radius must be positive value");
+    }
+
+    vec3 rvec = vec3(buf_rvec[0], buf_rvec[1], buf_rvec[2]);
+    pointing point = pointing(rvec);
+    rangeset<int64_t> pixset;
+
+    point.normalize();
+    if (inclusive)
+        base.query_disc_inclusive(point, radius, pixset);
+    else
+        base.query_disc(point, radius, pixset);
+
+    auto npix = pixset.nval();
+    auto buf_ipix = factory.createBuffer<uint64_t>(npix);
+    // based on _query_disc.pyx pixset_to_array()
+    for (size_t ii = 0, jj = 0; ii < pixset.size(); ++ii) {
+        for (auto ip = pixset.ivbegin(ii); ip < pixset.ivend(ii); ++ip) {
+            buf_ipix[jj++] = ip;
+        }
+    }
+
+    outputs[0] = factory.createArrayFromBuffer({(size_t)npix}, move(buf_ipix));
 }
 
 DISPATCH_FN(map2alm_iter) {
