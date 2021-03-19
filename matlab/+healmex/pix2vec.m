@@ -25,4 +25,3 @@ function [x, y, z] = pix2vec(nside, ipix, opt)
   [x,y,z] = libhealmex(int64(11), ...
       int64(nside), logical(opt.nest), int64(ipix));
 end
-

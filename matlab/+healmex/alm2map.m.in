@@ -1,60 +1,46 @@
-function maps = alm2map(alms, nside, opt)
-% maps = alm2map(alms, nside, ...)
+function varargout = alm2map(nside, almsT, almsG, almsC, opt)
+% [mapT, mapQ, mapU] = alm2map(nside, almsT, almsG, almsC, ...)
+%                map = alm2map(nside, alms, ...)
 %
 % INPUTS
-%   alms    The spherical harmonic coefficients of map. If map is Nx1, then
-%           alms is an Mx1 vector of scalar (non-spin) coefficients (i.e.
-%           temperature). If map is Nx3, the column 1 is the scalar (non-spin)
-%           coefficients, and columns 2 and 3 are the gradient and curl,
-%           respectively, spin-2 transforms.
-%
-%   nside   HEALPix Nside of output map to synthesize.
+%   nside         HEALPix Nside of output map to synthesize.
+%   almsT, alms   Scalar spherical harmonic coefficients.
+%   almsG         Gradient component of spin spherical harmonic coefficients.
+%                 Must be provided as a pair with almsC.
+%   almsC         Curl component of spin spherical harmonic coefficients.
+%                 Must be provided as a pair with almsG.
 %
 % KEY-VALUE PAIRS
-%   'lmax'  The maximum degree harmonic coefficient to compute. Optional if
-%           inferrable by alm_getlmmax().
-%
-%   'mmax'  The maximum order harmonic coefficient to compute. Optional if
-%           inferrable by alm_getlmmax().
+%   'lmax'        The maximum degree harmonic coefficient to compute.
+%                 Optional if inferrable by alm_getlmmax().
+%   'mmax'        The maximum order harmonic coefficient to compute.
+%                 Optional if inferrable by alm_getlmmax().
 %
 % OUTPUTS
-%   maps    An Nx1 or Nx3 matrix of map pixel values. Column 1 is assumed to
-%           be the intensity map, and columns 2 and 3 are assumed to be the
-%           Stokes Q and U fields, respectively.
+%   mapT, map     Scalar (non-spin) transform of almsT.
+%   mapQ          Spin transform of almsG and almsC to the Stokes Q field.
+%   mapU          Spin transform of almsG and almsC to the Stokes U field.
 %
 % EXAMPLE
 
   arguments
-    alms     (:,:) {mustBeNumeric}
     nside    (1,1) {mustBeInteger,mustBeNonnegative}
+    almsT    (:,1) {mustBeNumeric}
+    almsG    (:,1) {mustBeNumeric} = []
+    almsC    (:,1) {mustBeNumeric} = []
     opt.lmax       {mustBeNumeric,mustBeScalarOrEmpty} = []
     opt.mmax       {mustBeNumeric,mustBeScalarOrEmpty} = []
   end
 
-  [lmax, mmax] = @PACKAGEPREFIX@alm_getlmmax(alms, opt.lmax, opt.mmax);
-
-  if size(alms, 2) == 1
-    % T-only alms - pass through empty/dummy complex alms as almsG & almsC
-    almsT = complex(double(alms));
-    almsG = complex(double([]));
-    almsC = complex(double([]));
-  elseif size(alms, 2) == 3
-    % T + Pol alms case
-    almsT = complex(double(alms(:,1)));
-    almsG = complex(double(alms(:,2)));
-    almsC = complex(double(alms(:,3)));
-  else
-    throwAsCaller(MException('healmex:alm2map:dimensionMismatch', ...
-        'Expected alms to have size 1 or 3 in second dimension, got %d', size(alms, 2)));
-  end
-
+  [lmax, mmax] = @PACKAGEPREFIX@alm_getlmmax(almsT, opt.lmax, opt.mmax);
   [mapT, mapQ, mapU] = libhealmex(int64(55), ...
       int32(lmax), int32(mmax), ...
       complex(double(almsT)), complex(double(almsG)), complex(double(almsC)), ...
       int64(nside));
 
-  if size(alms, 2) == 1
-    maps = mapT;
-  else
-    maps = [mapT mapQ mapU];
+  varargout{1} = mapT;
+  if ~isempty(almsG)
+    varargout{2} = mapQ;
+    varargout{3} = mapU;
+  end
 end
