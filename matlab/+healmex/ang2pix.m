@@ -25,17 +25,11 @@ function ipix = ang2pix(nside, theta, phi, opt)
     opt.lonlat  (1,1) logical = false
     opt.nest    (1,1) logical = false
   end
-
-  if opt.nest
-    order = 'NESTED';
-  else
-    order = 'RING';
-  end
   if opt.lonlat
     theta = deg2rad(90 - theta);
     phi = deg2rad(phi);
   end
   ipix = libhealmex(int64(16), ...
-      int64(nside), char(order), double(theta), double(phi));
+      int64(nside), logical(opt.nest), double(theta), double(phi));
 end
 

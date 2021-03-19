@@ -24,6 +24,7 @@ using healalm = Alm<complex64>;
 /* Useful type predicates */
 
 inline bool ischar(Array& a)      { return a.getType() == ArrayType::CHAR; }
+inline bool isbool(Array& a)      { return a.getType() == ArrayType::LOGICAL; }
 inline bool isint32(Array& a)     { return a.getType() == ArrayType::INT32; }
 inline bool isint64(Array& a)     { return a.getType() == ArrayType::INT64; }
 inline bool isdouble(Array& a)    { return a.getType() == ArrayType::DOUBLE; }
@@ -143,6 +144,10 @@ public:
             if (!ismatrix(inputs[num])) { \
                 error(funcname ": argument " #num " (" argname ") must be a matrix.", num); \
             } )
+        #define CHECK_INPUT_BOOL(funcname, argname, num) CHECK_WRAP( \
+            if (!isbool(inputs[num])) { \
+                error(funcname ": argument " #num " (" argname ") must of type int.", num); \
+            } )
         #define CHECK_INPUT_INT(funcname, argname, num) CHECK_WRAP( \
             if (!isint(inputs[num])) { \
                 error(funcname ": argument " #num " (" argname ") must of type int.", num); \
@@ -193,7 +198,8 @@ public:
                 CHECK_NINOUT("pix2vec", 3, 3);
                 CHECK_INPUT_SCALAR("pix2vec", "nside", 1);
                 CHECK_INPUT_INT64("pix2vec", "nside", 1);
-                CHECK_INPUT_CHAR("pix2vec", "order", 2);
+                CHECK_INPUT_SCALAR("pix2vec", "order", 2);
+                CHECK_INPUT_BOOL("pix2vec", "order", 2);
                 CHECK_INPUT_INT64("pix2vec", "ipix", 3);
                 mex_pix2vec(outputs, inputs);
                 break;
@@ -202,7 +208,8 @@ public:
                 CHECK_NINOUT("pix2zphi", 3, 2);
                 CHECK_INPUT_SCALAR("pix2zphi", "nside", 1);
                 CHECK_INPUT_INT64("pix2zphi", "nside", 1);
-                CHECK_INPUT_CHAR("pix2zphi", "order", 2);
+                CHECK_INPUT_SCALAR("pix2zphi", "order", 2);
+                CHECK_INPUT_BOOL("pix2zphi", "order", 2);
                 CHECK_INPUT_INT64("pix2zphi", "ipix", 3);
                 mex_pix2zphi(outputs, inputs);
                 break;
@@ -211,7 +218,8 @@ public:
                 CHECK_NINOUT("pix2ang", 3, 2);
                 CHECK_INPUT_SCALAR("pix2ang", "nside", 1);
                 CHECK_INPUT_INT64("pix2ang", "nside", 1);
-                CHECK_INPUT_CHAR("pix2ang", "order", 2);
+                CHECK_INPUT_SCALAR("pix2ang", "order", 2);
+                CHECK_INPUT_BOOL("pix2ang", "order", 2);
                 CHECK_INPUT_INT64("pix2ang", "ipix", 3);
                 mex_pix2ang(outputs, inputs);
                 break;
@@ -220,7 +228,8 @@ public:
                 CHECK_NINOUT("vec2pix", 5, 1);
                 CHECK_INPUT_SCALAR("vec2pix", "nside", 1);
                 CHECK_INPUT_INT64("vec2pix", "nside", 1);
-                CHECK_INPUT_CHAR("vec2pix", "order", 2);
+                CHECK_INPUT_SCALAR("vec2pix", "order", 2);
+                CHECK_INPUT_BOOL("vec2pix", "order", 2);
                 CHECK_INPUT_DOUBLE("vec2pix", "x", 3);
                 CHECK_INPUT_DOUBLE("vec2pix", "y", 3);
                 CHECK_INPUT_DOUBLE("vec2pix", "z", 3);
@@ -231,7 +240,8 @@ public:
                 CHECK_NINOUT("zphi2pix", 4, 1);
                 CHECK_INPUT_SCALAR("zphi2pix", "nside", 1);
                 CHECK_INPUT_INT64("zphi2pix", "nside", 1);
-                CHECK_INPUT_CHAR("zphi2pix", "order", 2);
+                CHECK_INPUT_SCALAR("zphi2pix", "order", 2);
+                CHECK_INPUT_BOOL("zphi2pix", "order", 2);
                 CHECK_INPUT_DOUBLE("zphi2pix", "z", 3);
                 CHECK_INPUT_DOUBLE("zphi2pix", "phi", 4);
                 mex_zphi2pix(outputs, inputs);
@@ -241,7 +251,8 @@ public:
                 CHECK_NINOUT("ang2pix", 4, 1);
                 CHECK_INPUT_SCALAR("ang2pix", "nside", 1);
                 CHECK_INPUT_INT64("ang2pix", "nside", 1);
-                CHECK_INPUT_CHAR("ang2pix", "order", 2);
+                CHECK_INPUT_SCALAR("ang2pix", "order", 2);
+                CHECK_INPUT_BOOL("ang2pix", "order", 2);
                 CHECK_INPUT_DOUBLE("ang2pix", "theta", 3);
                 CHECK_INPUT_DOUBLE("ang2pix", "phi", 4);
                 mex_ang2pix(outputs, inputs);
@@ -251,7 +262,8 @@ public:
                 CHECK_NINOUT("pix2xyf", 3, 3);
                 CHECK_INPUT_SCALAR("pix2xyf", "nside", 1);
                 CHECK_INPUT_INT64("pix2xyf", "nside", 1);
-                CHECK_INPUT_CHAR("pix2xyf", "order", 2);
+                CHECK_INPUT_SCALAR("pix2xyf", "order", 2);
+                CHECK_INPUT_BOOL("pix2xyf", "order", 2);
                 CHECK_INPUT_INT64("pix2xyf", "ipix", 3);
                 mex_pix2xyf(outputs, inputs);
                 break;
@@ -260,7 +272,8 @@ public:
                 CHECK_NINOUT("xyf2pix", 5, 1);
                 CHECK_INPUT_SCALAR("xyf2pix", "nside", 1);
                 CHECK_INPUT_INT64("xyf2pix", "nside", 1);
-                CHECK_INPUT_CHAR("xyf2pix", "order", 2);
+                CHECK_INPUT_SCALAR("xyf2pix", "order", 2);
+                CHECK_INPUT_BOOL("xyf2pix", "order", 2);
                 CHECK_INPUT_INT("xyf2pix", "x", 3);
                 CHECK_INPUT_INT("xyf2pix", "y", 4);
                 CHECK_INPUT_INT("xyf2pix", "f", 5);
@@ -482,10 +495,10 @@ healpix nsideorder(const TypedArray<int64_t> ml_nside)
 // a HEALPix object.
 inline
 healpix nsideorder(const TypedArray<int64_t> ml_nside,
-                   const CharArray ml_order)
+                   const TypedArray<bool> ml_nested)
 {
     int64_t nside = ml_nside[0];
-    auto order = string2HealpixScheme(ml_order.toAscii());
+    auto order = ml_nested[0] ? NEST : RING;
     return healpix(nside, order, SET_NSIDE);
 }
 
