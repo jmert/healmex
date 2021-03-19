@@ -1,40 +1,35 @@
-function maps = alm2map_der1(alms, nside, opt)
-% maps = alm2map_der1(alms, nside, ...)
+function [map, mapdth, mapdph] = alm2map_der1(nside, alms, opt)
+% [map, mapdth, mapdph] = alm2map_der1(nside, alms, ...)
 %
 % Synthesizes a map and its first derivatives from the provided alms at
 % Nisde = nside with RING ordered pixelization.
 %
 % INPUTS
-%   alms    The spherical harmonic coefficients of a map.
-%
 %   nside   HEALPix Nside of output map to synthesize.
+%   alms    The spherical harmonic coefficients of a map.
 %
 % KEY-VALUE PAIRS
 %   'lmax'  The maximum degree harmonic coefficient to compute. Optional if
 %           inferrable by alm_getlmmax().
-%
 %   'mmax'  The maximum order harmonic coefficient to compute. Optional if
 %           inferrable by alm_getlmmax().
 %
 % OUTPUTS
-%   map     An Nx3 matrix of map pixel values. Each of the columns are:
-%             1. The synthesized map from the given alms.
-%             2. The derivative map d(map)/d(theta).
-%             3. The derivative map d(map)/d(phi) / sin(theta).
+%   map     The synthesized map from the given alms.
+%   mapdth  The derivative map d(map)/d(theta).
+%   mapdph  The derivative map d(map)/d(phi) / sin(theta).
 %
 % EXAMPLE
 
   arguments
-    alms     (:,1) {mustBeNumeric}
     nside    (1,1) {mustBeInteger,mustBeNonnegative}
+    alms     (:,1) {mustBeNumeric}
     opt.lmax       {mustBeNumeric,mustBeScalarOrEmpty} = []
     opt.mmax       {mustBeNumeric,mustBeScalarOrEmpty} = []
   end
 
   [lmax, mmax] = @PACKAGEPREFIX@alm_getlmmax(alms, opt.lmax, opt.mmax);
-
   [map, mapdth, mapdph] = libhealmex(int64(56), ...
       int32(lmax), int32(mmax), complex(double(alms)), ...
       int64(nside));
-  maps = [map mapdth mapdph];
 end
