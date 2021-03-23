@@ -71,6 +71,7 @@ enum libhealpix_mex_calls {
     id_heartbeat        = -1,
     id_nest2ring        =  1,
     id_ring2nest        =  2,
+    id_pix2ring         = 10,
     id_pix2vec          = 11,
     id_pix2zphi         = 12,
     id_pix2ang          = 13,
@@ -196,12 +197,22 @@ public:
                 mex_ring2nest(outputs, inputs);
                 break;
 
+            case id_pix2ring:
+                CHECK_NINOUT("pix2ring", 3, 3);
+                CHECK_INPUT_SCALAR("pix2ring", "nside", 1);
+                CHECK_INPUT_INT64("pix2ring", "nside", 1);
+                CHECK_INPUT_SCALAR("pix2ring", "nest", 2);
+                CHECK_INPUT_BOOL("pix2ring", "nest", 2);
+                CHECK_INPUT_INT64("pix2ring", "ipix", 3);
+                mex_pix2ring(outputs, inputs);
+                break;
+
             case id_pix2vec:
                 CHECK_NINOUT("pix2vec", 3, 3);
                 CHECK_INPUT_SCALAR("pix2vec", "nside", 1);
                 CHECK_INPUT_INT64("pix2vec", "nside", 1);
-                CHECK_INPUT_SCALAR("pix2vec", "order", 2);
-                CHECK_INPUT_BOOL("pix2vec", "order", 2);
+                CHECK_INPUT_SCALAR("pix2vec", "nest", 2);
+                CHECK_INPUT_BOOL("pix2vec", "nest", 2);
                 CHECK_INPUT_INT64("pix2vec", "ipix", 3);
                 mex_pix2vec(outputs, inputs);
                 break;
@@ -210,8 +221,8 @@ public:
                 CHECK_NINOUT("pix2zphi", 3, 2);
                 CHECK_INPUT_SCALAR("pix2zphi", "nside", 1);
                 CHECK_INPUT_INT64("pix2zphi", "nside", 1);
-                CHECK_INPUT_SCALAR("pix2zphi", "order", 2);
-                CHECK_INPUT_BOOL("pix2zphi", "order", 2);
+                CHECK_INPUT_SCALAR("pix2zphi", "nest", 2);
+                CHECK_INPUT_BOOL("pix2zphi", "nest", 2);
                 CHECK_INPUT_INT64("pix2zphi", "ipix", 3);
                 mex_pix2zphi(outputs, inputs);
                 break;
@@ -220,8 +231,8 @@ public:
                 CHECK_NINOUT("pix2ang", 3, 2);
                 CHECK_INPUT_SCALAR("pix2ang", "nside", 1);
                 CHECK_INPUT_INT64("pix2ang", "nside", 1);
-                CHECK_INPUT_SCALAR("pix2ang", "order", 2);
-                CHECK_INPUT_BOOL("pix2ang", "order", 2);
+                CHECK_INPUT_SCALAR("pix2ang", "nest", 2);
+                CHECK_INPUT_BOOL("pix2ang", "nest", 2);
                 CHECK_INPUT_INT64("pix2ang", "ipix", 3);
                 mex_pix2ang(outputs, inputs);
                 break;
@@ -230,8 +241,8 @@ public:
                 CHECK_NINOUT("vec2pix", 5, 1);
                 CHECK_INPUT_SCALAR("vec2pix", "nside", 1);
                 CHECK_INPUT_INT64("vec2pix", "nside", 1);
-                CHECK_INPUT_SCALAR("vec2pix", "order", 2);
-                CHECK_INPUT_BOOL("vec2pix", "order", 2);
+                CHECK_INPUT_SCALAR("vec2pix", "nest", 2);
+                CHECK_INPUT_BOOL("vec2pix", "nest", 2);
                 CHECK_INPUT_DOUBLE("vec2pix", "x", 3);
                 CHECK_INPUT_DOUBLE("vec2pix", "y", 3);
                 CHECK_INPUT_DOUBLE("vec2pix", "z", 3);
@@ -242,8 +253,8 @@ public:
                 CHECK_NINOUT("zphi2pix", 4, 1);
                 CHECK_INPUT_SCALAR("zphi2pix", "nside", 1);
                 CHECK_INPUT_INT64("zphi2pix", "nside", 1);
-                CHECK_INPUT_SCALAR("zphi2pix", "order", 2);
-                CHECK_INPUT_BOOL("zphi2pix", "order", 2);
+                CHECK_INPUT_SCALAR("zphi2pix", "nest", 2);
+                CHECK_INPUT_BOOL("zphi2pix", "nest", 2);
                 CHECK_INPUT_DOUBLE("zphi2pix", "z", 3);
                 CHECK_INPUT_DOUBLE("zphi2pix", "phi", 4);
                 mex_zphi2pix(outputs, inputs);
@@ -253,8 +264,8 @@ public:
                 CHECK_NINOUT("ang2pix", 4, 1);
                 CHECK_INPUT_SCALAR("ang2pix", "nside", 1);
                 CHECK_INPUT_INT64("ang2pix", "nside", 1);
-                CHECK_INPUT_SCALAR("ang2pix", "order", 2);
-                CHECK_INPUT_BOOL("ang2pix", "order", 2);
+                CHECK_INPUT_SCALAR("ang2pix", "nest", 2);
+                CHECK_INPUT_BOOL("ang2pix", "nest", 2);
                 CHECK_INPUT_DOUBLE("ang2pix", "theta", 3);
                 CHECK_INPUT_DOUBLE("ang2pix", "phi", 4);
                 mex_ang2pix(outputs, inputs);
@@ -264,8 +275,8 @@ public:
                 CHECK_NINOUT("pix2xyf", 3, 3);
                 CHECK_INPUT_SCALAR("pix2xyf", "nside", 1);
                 CHECK_INPUT_INT64("pix2xyf", "nside", 1);
-                CHECK_INPUT_SCALAR("pix2xyf", "order", 2);
-                CHECK_INPUT_BOOL("pix2xyf", "order", 2);
+                CHECK_INPUT_SCALAR("pix2xyf", "nest", 2);
+                CHECK_INPUT_BOOL("pix2xyf", "nest", 2);
                 CHECK_INPUT_INT64("pix2xyf", "ipix", 3);
                 mex_pix2xyf(outputs, inputs);
                 break;
@@ -274,8 +285,8 @@ public:
                 CHECK_NINOUT("xyf2pix", 5, 1);
                 CHECK_INPUT_SCALAR("xyf2pix", "nside", 1);
                 CHECK_INPUT_INT64("xyf2pix", "nside", 1);
-                CHECK_INPUT_SCALAR("xyf2pix", "order", 2);
-                CHECK_INPUT_BOOL("xyf2pix", "order", 2);
+                CHECK_INPUT_SCALAR("xyf2pix", "nest", 2);
+                CHECK_INPUT_BOOL("xyf2pix", "nest", 2);
                 CHECK_INPUT_INT("xyf2pix", "x", 3);
                 CHECK_INPUT_INT("xyf2pix", "y", 4);
                 CHECK_INPUT_INT("xyf2pix", "f", 5);
@@ -286,8 +297,8 @@ public:
                 CHECK_NINOUT("query_disc", 5, 1);
                 CHECK_INPUT_SCALAR("query_disc", "nside", 1);
                 CHECK_INPUT_INT64("query_disc", "nside", 1);
-                CHECK_INPUT_SCALAR("query_disc", "order", 2);
-                CHECK_INPUT_BOOL("query_disc", "order", 2);
+                CHECK_INPUT_SCALAR("query_disc", "nest", 2);
+                CHECK_INPUT_BOOL("query_disc", "nest", 2);
                 CHECK_INPUT_VECTOR("query_disc", "rvec", 3);
                 CHECK_INPUT_DOUBLE("query_disc", "rvec", 3);
                 CHECK_INPUT_SCALAR("query_disc", "radius", 4);
@@ -421,6 +432,7 @@ private:
     DISPATCH_FN(nest2ring);
     DISPATCH_FN(ring2nest);
 
+    DISPATCH_FN(pix2ring);
     DISPATCH_FN(pix2vec);
     DISPATCH_FN(pix2zphi);
     DISPATCH_FN(pix2ang);
@@ -568,6 +580,23 @@ DISPATCH_FN(ring2nest) {
     }
 
     outputs[0] = factory.createArrayFromBuffer(dims, move(rpix));
+}
+
+DISPATCH_FN(pix2ring) {
+    healpix base = nsideorder(inputs[1], inputs[2]);
+    TypedArray<int64_t> ml_ipix  = inputs[3];
+
+    auto ipix  = buffer<int64_t>(ml_ipix);
+    auto dims  = ml_ipix.getDimensions();
+    auto npix  = ml_ipix.getNumberOfElements();
+    auto ring = factory.createBuffer<int64_t>(npix);
+
+    #pragma omp parallel for
+    for (size_t ii = 0; ii < npix; ++ii) {
+        ring[ii] = base.pix2ring(ipix[ii]);
+    }
+
+    outputs[0] = factory.createArrayFromBuffer(dims, move(ring));
 }
 
 DISPATCH_FN(pix2vec) {
