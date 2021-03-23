@@ -81,6 +81,7 @@ enum libhealpix_mex_calls {
     id_pix2xyf          = 17,
     id_xyf2pix          = 18,
     id_query_disc       = 19,
+    id_neighbors        = 20,
     id_map2alm_iter     = 53,
     id_alm2map          = 55,
     id_alm2map_der1     = 56,
@@ -308,6 +309,17 @@ public:
                 mex_query_disc(outputs, inputs);
                 break;
 
+            case id_neighbors:
+                CHECK_NINOUT("neighbors", 3, 1);
+                CHECK_INPUT_SCALAR("neighbors", "nside", 1);
+                CHECK_INPUT_INT64("neighbors", "nside", 1);
+                CHECK_INPUT_SCALAR("neighbors", "nest", 2);
+                CHECK_INPUT_BOOL("neighbors", "nest", 2);
+                CHECK_INPUT_VECTOR("neighbors", "ipix", 3);
+                CHECK_INPUT_INT64("neighbors", "ipix", 3);
+                mex_neighbors(outputs, inputs);
+                break;
+
             case id_map2alm_iter:
                 CHECK_NINOUT("map2alm_iter", 8, 3);
                 CHECK_INPUT_SCALAR("map2alm_iter", "nside", 1);
@@ -442,6 +454,7 @@ private:
     DISPATCH_FN(pix2xyf);
     DISPATCH_FN(xyf2pix);
     DISPATCH_FN(query_disc);
+    DISPATCH_FN(neighbors);
 
     DISPATCH_FN(map2alm_iter);
     DISPATCH_FN(alm2map);
@@ -812,6 +825,28 @@ DISPATCH_FN(query_disc) {
     }
 
     outputs[0] = factory.createArrayFromBuffer({(size_t)npix}, move(buf_ipix));
+}
+
+DISPATCH_FN(neighbors) {
+    healpix base = nsideorder(inputs[1], inputs[2]);
+    auto [ipix, npix] = bufferlen<int64_t>(inputs[3]);
+
+    auto nei = factory.createBuffer<int64_t>(8 * npix);
+    #pragma omp parallel for
+    for (size_t ii = 0; ii < npix; ++ii) {
+        fix_arr<int64_t,8> res;
+        base.neighbors(ipix[ii], res);
+        nei[0 + 8*ii] = res[0];
+        nei[1 + 8*ii] = res[1];
+        nei[2 + 8*ii] = res[2];
+        nei[3 + 8*ii] = res[3];
+        nei[4 + 8*ii] = res[4];
+        nei[5 + 8*ii] = res[5];
+        nei[6 + 8*ii] = res[6];
+        nei[7 + 8*ii] = res[7];
+    }
+
+    outputs[0] = factory.createArrayFromBuffer({8, npix}, move(nei));
 }
 
 DISPATCH_FN(map2alm_iter) {
