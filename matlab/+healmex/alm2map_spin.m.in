@@ -1,0 +1,33 @@
+function [map1, map2] = alm2map(nside, alms1, alms2, spin, opt)
+% [map1, map2] = alm2map(nside, alms1, alms2, spin, ...)
+%
+% INPUTS
+%   nside         HEALPix Nside of output map to synthesize.
+%   alms1, alms2  Pair of spin spherical harmonic coefficients.
+%   spin          The spin to perform.
+%
+% KEY-VALUE PAIRS
+%   'lmax'        The maximum degree harmonic coefficient to compute.
+%                 Optional if inferrable by alm_getlmmax().
+%   'mmax'        The maximum order harmonic coefficient to compute.
+%                 Optional if inferrable by alm_getlmmax().
+%
+% OUTPUTS
+%   map1, map2    Spin maps.
+%
+% EXAMPLE
+
+  arguments
+    nside    (1,1) {mustBeInteger,mustBeNonnegative}
+    alms1    (:,1) {mustBeNumeric}
+    alms2    (:,1) {mustBeNumeric}
+    spin     (1,1) {mustBeInteger,mustBeNonnegative}
+    opt.lmax       {mustBeNumeric,mustBeScalarOrEmpty} = []
+    opt.mmax       {mustBeNumeric,mustBeScalarOrEmpty} = []
+  end
+
+  [lmax, mmax] = @PACKAGEPREFIX@alm_getlmmax(alms1, opt.lmax, opt.mmax);
+  [map1, map2] = libhealmex(int64(56), ...
+      int32(lmax), int32(mmax), ...
+      complex(double(alms1)), complex(double(alms2)), int32(spin), int64(nside));
+end

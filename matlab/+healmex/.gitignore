@@ -1,9 +1,11 @@
 # Files which are processed from .in files
 alm2cl.m
 alm2map.m
+alm2map_spin.m
 alm2map_der1.m
 almxfl.m
 map2alm.m
+map2alm_spin.m
 mollview.m
 query_disc.m
 rotate_alm.m

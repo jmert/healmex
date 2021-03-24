@@ -1,0 +1,51 @@
+function [alms1, alms2] = map2alm_spin(map1, map2, spin, opt)
+% [alms1, alms2] = map2alm_spin(map1, map2, spin, ...)
+%
+% INPUTS
+%   map1,map2     Pair of maps to be spin transformed. Must be ring-ordered.
+%   spin          The spin to perform.
+%
+% KEY-VALUE PAIRS
+%   'lmax'  The maximum degree harmonic coefficient to compute. Defaults to
+%           3*nside-1 if not provided.
+%
+%   'mmax'  The maximum order harmonic coefficient to compute. Defaults to
+%           lmax if not provided.
+%
+%   'iter'  Defaults to 3. Number of iterations to perform in convergence to
+%           spherical harmonic coefficients, where 0 iterations is a single
+%           analysis transform without any iterative updates.
+%
+% OUTPUTS
+%   alms1, alms2  Spin spherical harmonic coefficients
+%
+% EXAMPLE
+
+  arguments
+    map1     (:,1) {mustBeNumeric}
+    map2     (:,1) {mustBeNumeric}
+    spin     (1,1) {mustBeInteger,mustBeNonnegative}
+    opt.lmax       {mustBeNumeric,mustBeScalarOrEmpty} = []
+    opt.mmax       {mustBeNumeric,mustBeScalarOrEmpty} = []
+    opt.iter       {mustBeNumeric,mustBeScalarOrEmpty} = 3
+  end
+
+  lmax = opt.lmax;
+  mmax = opt.mmax;
+  iter = opt.iter;
+  nside = @PACKAGEPREFIX@npix2nside(size(map1, 1));
+
+  if isempty(lmax)
+    lmax = 3 * nside - 1;
+  end
+  if isempty(mmax)
+    mmax = lmax;
+  end
+
+  % TODO: Allow real ring weights.
+  rwghts = ones(4 * nside - 1, 1);
+
+  [alms1,alms2] = libhealmex(int64(54), ...
+      int64(nside), double(map1), double(map2), int32(spin), ...
+      int32(lmax), int32(mmax), double(rwghts), int32(iter));
+end
