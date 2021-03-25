@@ -1,4 +1,4 @@
-function varargout = map2alm(mapT, mapQ, mapU, varargin)
+function varargout = map2alm(mapT, mapQ, mapU, opt)
 % [almsT, almsG, almsC] = map2alm(mapT, mapQ, mapU, ...)
 %                  alms = map2alm(map, ...)
 %
