@@ -35,7 +35,7 @@ function himg = mollview(map, opt)
 
   % Do nearest-neighbor sampling
   nside = @PACKAGEPREFIX@npix2nside(size(map, 1));
-  ipix = @PACKAGEPREFIX@ang2pix(nside, yc(:), xc(:), 'nest', opt.nest, 'lonlat', true);
+  ipix = @PACKAGEPREFIX@ang2pix(nside, yc(:), xc(:), 'nest', opt.nest, 'latlon', true);
   img = NaN(size(xx));
   img(1:end-1, 1:end-1) = reshape(map(ipix+1), size(xc));
 

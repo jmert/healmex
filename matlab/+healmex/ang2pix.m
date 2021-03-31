@@ -3,14 +3,14 @@ function ipix = ang2pix(nside, theta, phi, opt)
 %
 % INPUTS
 %   nside       The HEALPix Nside parameter.
-%   theta       If lonlat==true, the latitude in degrees (-90 <= lat <= 90),
+%   theta       If latlon==true, the latitude in degrees (-90 <= lat <= 90),
 %               otherwise the colatitude in radians (0 <= theta <= pi).
-%   phi         If lonlat==true, the longitude in degrees (0 <= lon < 360),
+%   phi         If latlon==true, the longitude in degrees (0 <= lon < 360),
 %               otherwise the azimuth in radians (0 <= phi < 2*pi).
 %
 % KEY-VALUE PAIRS
-%   'lonlat'    Defaults to false. If true, instead returns the longitude and
-%               latitude coordinates [lon,lat] in degrees.
+%   'latlon'    Defaults to false. If true, instead interprets theta and phi
+%               as latitude and longitude coordinates in degrees.
 %   'nest'      Defaults to false. If true, `ipix` are NESTED ordering pixels,
 %               otherwise assumes RING ordering.
 %
@@ -22,10 +22,10 @@ function ipix = ang2pix(nside, theta, phi, opt)
     nside       (1,1) {mustBeNumeric}
     theta             {mustBeNumeric}
     phi               {mustBeNumeric}
-    opt.lonlat  (1,1) logical = false
+    opt.latlon  (1,1) logical = false
     opt.nest    (1,1) logical = false
   end
-  if opt.lonlat
+  if opt.latlon
     theta = deg2rad(90 - theta);
     phi = deg2rad(phi);
   end
