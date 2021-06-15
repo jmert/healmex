@@ -1,0 +1,157 @@
+function alms = synalm(cls, opt)
+% alms = synalm(cls, ...)
+%
+% Generates a set of alms given a corresponding set of [correlated] power
+% spectra.
+%
+% INPUT
+%   cls     Power spectra (as columns). Number of columns may be:
+%             1 - single realization of (uncorrelated) alms
+%             4 - returns an Nx3 matrix of alms [almsT, almsE, almsB] for
+%                 the input [TT, EE, BB, TE] (if 'new' == true)
+%                 or [TT, TE, EE, BB] (if 'new' == false)
+%             N - any number N where there is an intenger n such that
+%                 N == n*(n+1)/2.
+%
+% KEY-VALUE PAIRS
+%   'lmax'  The maximum degree harmonic coefficient to compute.
+%           Defaults to size(cls,1)-1 if not provided.
+%
+%   'mmax'  The maximum order harmonic coefficient to compute. Defaults to
+%           Defaults to lmax if not provided.
+%
+%   'new'   Defaults to false. Ordering of the input spectra.
+%           If true, the columns of cls are ordered as the successive diagonals
+%           of the corresponding symmetric matrix;
+%           i.e. if N=6, ordered as TT, EE, BB, TE, EB, TB.
+%           If false, the columns of cls are ordered as the rows of the upper
+%           triangle of the corresponding symmetric matrix;
+%           i.e. if N=6, ordered as TT, TE, TB, EE, EB, BB.
+%
+%   'rng'   Random number generator to use when drawing the random deviates.
+%           Defaults to a Mersenne Twister with Matlab's 'shuffle' seeding.
+%           May be an integer which reseeds the current global stream object
+%           with the given seed value, or a RandStream object may be provided
+%           to use a particular (pre-initialized) generator.
+
+  arguments
+    cls      (:,:)   {mustBeNumeric,mustBeFinite}
+    opt.lmax         {mustBeNumeric,mustBeScalarOrEmpty} = size(cls, 1)-1
+    opt.mmax         {mustBeNumeric,mustBeScalarOrEmpty} = size(cls, 1)-1
+    opt.new  logical = false
+    opt.rng          {mustBeScalarOrEmpty} = []
+  end
+
+  rng = opt.rng;
+  if isempty(rng)
+    % choose a reasonable, default, shuffled generator
+    rng = RandStream('mt19937ar', 'Seed','shuffle', ...
+        'NormalTransform','Ziggurat');
+  elseif isa(rng, 'RandStream')
+    % do nothing else
+  elseif isnumeric(rng)
+    % use the global stream, but explicitly set the seed value
+    seed = rng;
+    rng = RandStream.getGlobalStream();
+    reset(rng, seed);
+  else
+    error('healmex:synalm:ArgumentError', 'Invalid rng');
+  end
+
+  L = size(cls, 1);
+  N = size(cls, 2);
+
+  % As a special case, accept just the cosmologically-motivated subset
+  % where only the TT, TE, EE, and BB cross spectra are given
+  % (with TB and EB == 0 implied).
+  if N == 4
+    cls0 = cls;
+    cls = zeros(L, 6);
+    n = 3; % TT, EE, BB
+    N = 6; % n*(n+1)/2
+    if opt.new
+      cls0 = cls0(:,[1,4,2,3]);
+    end
+    cls(:,[1,2,4,6]) = cls0;
+
+  else
+    n = (sqrt(1+8*N)-1)/2;
+    if n*(n+1)/2 ~= N
+      error('healmex:synalm:DimensionMismatch', 'Invalid number of spectra');
+    end
+
+    if opt.new
+      % Calculate indices of "new"/diagonal order in the "old"/row/column
+      % order.
+      I = zeros(n, n);
+      off = 0;
+      for dd = 0:n-1
+        I = I + diag(off + (1:n-dd), -dd);
+        off = off + n-dd;
+      end
+      I = I(I>0);
+      % reorder
+      cls = cls(:,I);
+    end
+  end
+
+  % Pre-calculate indices necessary to turn the list of values into a
+  % symmetric matrix that can be cholesky decomposed.
+  I = tril(ones(n, n));
+  I(I>0) = 1:N;
+  I = I + tril(I, -1).';
+  I = I(:);
+
+  lmax = opt.lmax;
+  mmax = opt.mmax;
+  nel = @PACKAGEPREFIX@alm_getn(lmax, mmax);
+
+  % N.B.: We draw all random deviates before starting so that the draws
+  % are ordered such that increasing lmax -> lmax' for a given seed value will
+  % gave the same alms for all ell < lmax.
+  %
+  % This requires that we:
+  %   - first draw a random complex deviate (first dim)
+  %   - then draw the deviates for each of the n fields (second dim)
+  %   - and then finally we draw values for the degrees and orders (thrid dim)
+  %
+  % This does draw an extra imaginary element for each m=0 alm which is
+  % subsequently ignored, but doing so makes satisfying the above three
+  % conditions much easier.
+  alms = rng.randn(2, n, nel) ./ sqrt(2);
+  alms = complex(squeeze(alms(1,:,:)), squeeze(alms(2,:,:)));
+  reord = zeros(nel, 1);
+
+  C = zeros(n, n);
+  ii = 1;
+  for ll = 0:lmax
+    % build the symmetric Cl matrix
+    C(:) = cls(ll+1, I);
+    % decompose the non-zero subset of the matrix
+    m = any(C, 1);
+    if any(m)
+      C(m,m) = chol(C(m,m),'lower');
+    end
+    % continue even if C is all zeros so that the alms are zeroed out
+    % via multiplication by C.
+
+    for mm = 0:min(ll,mmax)
+      rd = alms(:,ii);
+      if mm == 0
+        rd = sqrt(2) * real(rd);
+      end
+      alms(:,ii) = C * rd;
+      reord(ii) = @PACKAGEPREFIX@alm_getidx(lmax, ll, mm);
+      ii = ii + 1;
+    end
+  end
+
+  % Now fix up the ordering and dimensionality of the output matrix.
+  % - Reorder the output vector from iterating fast through m and then through
+  %   l to instead being fast in l and slow in m as used in the healpix
+  %   library.
+  % - Transpose the output matrix so that each set of alms is a column rather
+  %   than a row.
+  alms(:,reord) = alms;
+  alms = alms.';
+end
