@@ -15,6 +15,8 @@
 #include <powspec.h>
 #include <rotmatrix.h>
 
+#include "libmcm.cpp"
+
 using namespace std;
 using namespace matlab::data;
 using matlab::mex::ArgumentList;
@@ -86,8 +88,10 @@ enum libhealpix_mex_calls {
     id_shrink_mask      = 69,
     id_smooth_mask      = 70,
     id_alm2map_polonly  = 71,
-    id_smoothing        = 72,
-    id_scan_rings_observed = 73
+    id_smoothing_pol    = 72,
+    id_smoothing        = 73,
+    id_scan_rings_observed = 74,
+    id_compute_mcm      = 75
 };
 
 class MexFunction : public matlab::mex::Function {
@@ -362,26 +366,46 @@ public:
                 mex_almxfl(outputs, inputs);
                 break;
 
+            case id_smoothing_pol:
+                CHECK_NINOUT("smoothing_pol", 11, 2);
+                CHECK_INPUT_SCALAR("smoothing_pol", "nside", 1);
+                CHECK_INPUT_INT64("smoothing_pol", "nside", 1);
+                CHECK_INPUT_CHAR("smoothing_pol", "order", 2);
+                CHECK_INPUT_DOUBLE("smoothing_pol", "mapQ", 3);
+                CHECK_INPUT_DOUBLE("smoothing_pol", "mapU", 4);
+                CHECK_INPUT_DOUBLE("smoothing_pol", "fle", 5);
+                CHECK_INPUT_VECTOR("smoothing_pol", "fle", 5);
+                CHECK_INPUT_DOUBLE("smoothing_pol", "flb", 6);
+                CHECK_INPUT_VECTOR("smoothing_pol", "flb", 6);
+                CHECK_INPUT_SCALAR("smoothing_pol", "lmax", 7);
+                CHECK_INPUT_INT32("smoothing_pol", "lmax", 7);
+                CHECK_INPUT_SCALAR("smoothing_pol", "mmax", 8);
+                CHECK_INPUT_INT32("smoothing_pol", "mmax", 8);
+                CHECK_INPUT_SCALAR("smoothing_pol", "mmin", 9);
+                CHECK_INPUT_INT32("smoothing_pol", "mmin", 9);
+                CHECK_INPUT_DOUBLE("smoothing_pol", "rwghts", 10);
+                CHECK_INPUT_SCALAR("smoothing_pol", "iter", 11);
+                CHECK_INPUT_INT32("smoothing_pol", "iter", 11);
+                mex_smoothing_pol(outputs, inputs);
+                break;
+
             case id_smoothing:
-                CHECK_NINOUT("smoothing", 11, 2);
+                CHECK_NINOUT("smoothing", 9, 2);
                 CHECK_INPUT_SCALAR("smoothing", "nside", 1);
                 CHECK_INPUT_INT64("smoothing", "nside", 1);
                 CHECK_INPUT_CHAR("smoothing", "order", 2);
-                CHECK_INPUT_DOUBLE("smoothing", "mapQ", 3);
-                CHECK_INPUT_DOUBLE("smoothing", "mapU", 4);
-                CHECK_INPUT_DOUBLE("smoothing", "fle", 5);
-                CHECK_INPUT_VECTOR("smoothing", "fle", 5);
-                CHECK_INPUT_DOUBLE("smoothing", "flb", 6);
-                CHECK_INPUT_VECTOR("smoothing", "flb", 6);
-                CHECK_INPUT_SCALAR("smoothing", "lmax", 7);
-                CHECK_INPUT_INT32("smoothing", "lmax", 7);
-                CHECK_INPUT_SCALAR("smoothing", "mmax", 8);
-                CHECK_INPUT_INT32("smoothing", "mmax", 8);
-                CHECK_INPUT_SCALAR("smoothing", "mmin", 9);
-                CHECK_INPUT_INT32("smoothing", "mmin", 9);
-                CHECK_INPUT_DOUBLE("smoothing", "rwghts", 10);
-                CHECK_INPUT_SCALAR("smoothing", "iter", 11);
-                CHECK_INPUT_INT32("smoothing", "iter", 11);
+                CHECK_INPUT_DOUBLE("smoothing", "map", 3);
+                CHECK_INPUT_DOUBLE("smoothing", "fl", 4);
+                CHECK_INPUT_VECTOR("smoothing", "fl", 4);
+                CHECK_INPUT_SCALAR("smoothing", "lmax", 5);
+                CHECK_INPUT_INT32("smoothing", "lmax", 5);
+                CHECK_INPUT_SCALAR("smoothing", "mmax", 6);
+                CHECK_INPUT_INT32("smoothing", "mmax", 6);
+                CHECK_INPUT_SCALAR("smoothing", "mmin", 7);
+                CHECK_INPUT_INT32("smoothing", "mmin", 7);
+                CHECK_INPUT_DOUBLE("smoothing", "rwghts", 8);
+                CHECK_INPUT_SCALAR("smoothing", "iter", 9);
+                CHECK_INPUT_INT32("smoothing", "iter", 9);
                 mex_smoothing(outputs, inputs);
                 break;
 
@@ -452,6 +476,22 @@ public:
 				mex_scan_rings_observed(outputs, inputs);
 				break;
 	
+			case id_compute_mcm:
+                CHECK_NINOUT("compute_mcm", 7, 1);
+                CHECK_INPUT_SCALAR("compute_mcm", "lmax", 1);
+                CHECK_INPUT_INT32("compute_mcm", "lmax", 1);
+                CHECK_INPUT_SCALAR("compute_mcm", "lmax_mask", 2);
+                CHECK_INPUT_INT32("compute_mcm", "lmax_mask", 2);
+                CHECK_INPUT_SCALAR("compute_mcm", "nside", 3);
+                CHECK_INPUT_INT64("compute_mcm", "nside", 3);
+                CHECK_INPUT_CHAR("compute_mcm", "order", 4);
+                CHECK_INPUT_DOUBLE("compute_mcm", "mask", 5);
+                CHECK_INPUT_DOUBLE("compute_mcm", "rwghts", 6);
+                CHECK_INPUT_SCALAR("compute_mcm", "iter", 7);
+                CHECK_INPUT_INT32("compute_mcm", "iter", 7);
+                mex_compute_mcm(outputs, inputs);
+				break;
+				
             default:
                 error("Unhandled dispatch type %d", dispatch);
         }
@@ -488,10 +528,12 @@ private:
     DISPATCH_FN(apodize_mask);
     DISPATCH_FN(shrink_mask);
     DISPATCH_FN(smooth_mask);
+    DISPATCH_FN(smoothing_pol);
     DISPATCH_FN(smoothing);
 
     /* Utility functions */
     DISPATCH_FN(scan_rings_observed);
+    DISPATCH_FN(compute_mcm);
 
     #undef DISPATCH_FN
 
@@ -982,12 +1024,6 @@ DISPATCH_FN(map2alm_pure) {
 	for(int l=0;l<=lmax;l++) //The minus sign is because of the definition of E-modes
 		f_l[l]=-sqrt(((double)l+1.)*(double)l);
 		
-	// #pragma omp parallel for
-	// for (size_t m=0; m<=mmax; m++) {
-		// for (size_t l=m; l<=lmax; l++) {
-			// wlmsG(l,m)=wlmsG(l,m)*f_l[l];
-		// }
-	// }
 	wlmsG.ScaleL(f_l);
 	wlmsC.ScaleL(f_l);
 	job.alm2map_spin(&wlmsG(0,0),&wlmsC(0,0),&wapQ[0],&wapU[0],1,false);
@@ -1025,12 +1061,6 @@ DISPATCH_FN(map2alm_pure) {
 			f_l[l]=0;
 	}
 	
-	// #pragma omp parallel for
-	// for (size_t m=0; m<=mmax; m++) {
-		// for (size_t l=m; l<=lmax; l++) {
-			// wlmsG(l,m)=wlmsG(l,m)*f_l[l];
-		// }
-	// }
 	wlmsG.ScaleL(f_l);
 	wlmsC.ScaleL(f_l);
 	job.alm2map_spin(&wlmsG(0,0),&wlmsC(0,0),&wapQ[0],&wapU[0],2,false);
@@ -1489,7 +1519,7 @@ DISPATCH_FN(almxfl) {
 }
 
 
-DISPATCH_FN(smoothing) {
+DISPATCH_FN(smoothing_pol) {
     healpix base = nsideorder(inputs[1], inputs[2]);
     auto [buf_mapQ, len_mapQ] = bufferlen<double>(inputs[3]);
     auto [buf_mapU, len_mapU] = bufferlen<double>(inputs[4]);
@@ -1545,6 +1575,47 @@ DISPATCH_FN(smoothing) {
 
     outputs[0] = factory.createArrayFromBuffer({len_mapQ}, move(buf_mapQ));
     outputs[1] = factory.createArrayFromBuffer({len_mapU}, move(buf_mapU));
+}
+
+DISPATCH_FN(smoothing) {
+    healpix base = nsideorder(inputs[1], inputs[2]);
+    auto [buf_map, len_map] = bufferlen<double>(inputs[3]);
+    auto [buf_fl,   len_fl]   = bufferlen<double>(inputs[4]);
+    auto lmax = scalar<int32_t>(inputs[5]);
+    auto mmax = scalar<int32_t>(inputs[6]);
+    auto mmin = scalar<int32_t>(inputs[7]);
+    auto [buf_wght, len_wght] = bufferlen<double>(inputs[8]);
+    auto iter = scalar<int32_t>(inputs[9]);
+
+    auto map = healmap();
+    {
+        arr<double> tmp(buf_map.get(), len_map);
+        map.Set(tmp, base.Scheme());
+    }
+
+    arr<double> rwghts(buf_wght.get(), len_wght);
+
+    auto nalms = Alm_Base::Num_Alms(lmax, mmax);
+	
+    auto alms = healalm();
+	alms.Set(lmax, mmax);
+
+	map2alm_iter(map,alms,iter,rwghts);
+	
+	double fl;
+	
+	#pragma omp parallel for
+	for (int m=0; m<=mmax; m++) {
+		for (int l=m; l<=lmax; l++) {
+			if ( l < len_fl && m >= mmin ) fl=buf_fl[l];
+			else fl=0.0;
+			alms(l,m)*=fl;
+		}
+	}
+	
+	alm2map(alms, map);
+
+    outputs[0] = factory.createArrayFromBuffer({len_map}, move(buf_map));
 }
 
 // Forward declaration of HEALPix's Trafo object. Header isn't installed, so
@@ -1633,4 +1704,109 @@ DISPATCH_FN(scan_rings_observed) {
 
     _scan_rings_observed(nside, buf_map.get(),  buf_rings.get());
     outputs[0] = factory.createArrayFromBuffer({2*nside}, move(buf_rings));
+}
+
+DISPATCH_FN(compute_mcm) {
+    auto lmax = scalar<int32_t>(inputs[1]);
+    auto lmax_mask = scalar<int32_t>(inputs[2]);
+
+    healpix base = nsideorder(inputs[3], inputs[4]);
+    auto [buf_map, len_map] = bufferlen<double>(inputs[5]);
+    auto [buf_wght, len_wght] = bufferlen<double>(inputs[6]);
+    auto iter = scalar<int32_t>(inputs[7]);
+
+    auto map = healmap();
+    {
+        arr<double> tmp(buf_map.get(), len_map);
+        map.Set(tmp, base.Scheme());
+    }
+
+    arr<double> rwghts(buf_wght.get(), len_wght);
+
+    auto alms = healalm();
+	alms.Set(lmax_mask,lmax_mask);
+
+    map2alm_iter(map, alms, iter, rwghts);
+	
+	std::vector<double> pcl_masks(lmax_mask+1);
+
+    for (int ll = 0; ll <= lmax; ++ll) {
+        pcl_masks[ll] = alms(ll,0).real() * alms(ll,0).real();
+        int endm = ll < lmax ? ll : lmax;
+        for (int mm = 0; mm <= endm; ++mm) {
+            pcl_masks[ll] += 2 * (alms(ll,mm).real() * alms(ll,mm).real()
+                              + alms(ll,mm).imag() * alms(ll,mm).imag());
+        }
+        pcl_masks[ll] /= (4*M_PI);
+    }
+	
+	int s1=2;
+	int s2=2;
+	int pe1=0;
+	int pe2=0;
+	int pb1=0;
+	int pb2=0;
+	
+	
+	int ncls=7;
+	
+    int pure_any;
+    int npure_0s;
+    int npure_ss;
+    pure_any=pe1 || pe2 || pb1 || pb2;    
+    
+    if(pure_any) {
+      npure_0s=2;
+      npure_ss=3;
+    }
+    else {
+      npure_0s=1;
+      npure_ss=1;
+    }
+	
+    std::vector<std::vector<std::vector<double>>> xi_00;
+    std::vector<std::vector<std::vector<std::vector<double>>>> xi_0s;
+    std::vector<std::vector<std::vector<std::vector<double>>>> xi_pp;
+    std::vector<std::vector<std::vector<std::vector<double>>>> xi_mm;
+
+	
+    xi_00=std::vector<std::vector<std::vector<double>>>(1,std::vector<std::vector<double>>(lmax+1,std::vector<double>(lmax+1,0.0)));
+    xi_0s=std::vector<std::vector<std::vector<std::vector<double>>>>(1,std::vector<std::vector<std::vector<double>>>(npure_0s,std::vector<std::vector<double>>(lmax+1,std::vector<double>(lmax+1,0.0))));
+    xi_pp=std::vector<std::vector<std::vector<std::vector<double>>>>(1,std::vector<std::vector<std::vector<double>>>(npure_ss,std::vector<std::vector<double>>(lmax+1,std::vector<double>(lmax+1,0.0))));
+    xi_mm=std::vector<std::vector<std::vector<std::vector<double>>>>(1,std::vector<std::vector<std::vector<double>>>(npure_ss,std::vector<std::vector<double>>(lmax+1,std::vector<double>(lmax+1,0.0))));
+
+    compute_mcm_namaster(lmax, lmax_mask, 1, pcl_masks,s1,s2,pe1,pb1,pe2,pb2,1,-1,-1,-1,xi_00,xi_0s,xi_pp,xi_mm);
+
+	std::vector<size_t> dims = {9,9,lmax+1,lmax+1};
+	
+	TypedArray<double> cm=factory.createArray<double>(dims);
+
+    // #pragma omp parallel default(none) shared(lmax,s1,s2,pe1,pb1,pe2,pb2,c,cm)
+    // {
+      int ll2,ll3;
+      int sign_overall=1;
+      if((s1+s2) & 1)
+        sign_overall=-1;
+    
+      // #pragma omp for schedule(dynamic)
+      for(ll2=0;ll2<=lmax;ll2++) {
+        for(ll3=0;ll3<=lmax;ll3++) {
+          double fac=(2*ll3+1.)*sign_overall;
+          cm[0][0][ll2][ll3]=fac*xi_00[0][ll2][ll3]; //TT,TT
+          cm[1][1][ll2][ll3]=fac*xi_0s[0][pe2][ll2][ll3]; //TE,TE
+          cm[4][4][ll2][ll3]=fac*xi_0s[0][pb2][ll2][ll3]; //TB,TB
+          cm[2][3][ll2][ll3]=fac*xi_mm[0][pe2+pe2][ll2][ll3]; //EE,BB
+          cm[5][8][ll2][ll3]=-fac*xi_mm[0][pe2+pb2][ll2][ll3]; //EB,BE
+          cm[8][5][ll2][ll3]=-fac*xi_mm[0][pb2+pe2][ll2][ll3]; //BE,EB
+          cm[3][2][ll2][ll3]=fac*xi_mm[0][pb2+pb2][ll2][ll3]; //BB,EE
+          cm[2][2][ll2][ll3]=fac*xi_pp[0][pe2+pe2][ll2][ll3]; //EE,EE
+          cm[5][5][ll2][ll3]=fac*xi_pp[0][pe2+pb2][ll2][ll3]; //EB,EB
+          cm[8][8][ll2][ll3]=fac*xi_pp[0][pb2+pe2][ll2][ll3]; //BE,BE
+          cm[3][3][ll2][ll3]=fac*xi_pp[0][pb2+pb2][ll2][ll3]; //BB,BB
+
+        }
+      } //end omp for
+    // } //end omp parallel
+
+    outputs[0] = cm;
 }

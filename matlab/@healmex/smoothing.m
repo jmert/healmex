@@ -31,14 +31,22 @@ function map = smoothing(map, fl, mask, rwghts, order, lmax, mmax, mmin, nside, 
     flb=fl(:,1);
   end
 
-  if size(map, 2) == 2
+  nstokes=size(map, 2);
+  
+  if nstokes>= 2
     if ~exist('mask', 'var') || isempty(mask)
-      [map(:,1),map(:,2)] = healmex.hpx_smoothing(map(:,1), -1.*map(:,2), fle, flb, order, lmax, mmax, mmin, nside, rwghts, niter);
+      [map(:,nstokes-1),map(:,nstokes)] = healmex.hpx_smoothing_pol(map(:,nstokes-1), -1.*map(:,nstokes), fle, flb, order, lmax, mmax, mmin, nside, rwghts, niter);
 	else
-      [map(:,1),map(:,2)] = healmex.hpx_smoothing(map(:,1).*mask, -1.*map(:,2).*mask, fle, flb, order, lmax, mmax, mmin, nside, rwghts, niter);
+      [map(:,nstokes-1),map(:,nstokes)] = healmex.hpx_smoothing_pol(map(:,nstokes-1).*mask, -1.*map(:,nstokes).*mask, fle, flb, order, lmax, mmax, mmin, nside, rwghts, niter);
 	end
-    map(:,2)=-1.*map(:,2);
+    map(:,nstokes)=-1.*map(:,nstokes);
+  else if nstokes == 3
+    if ~exist('mask', 'var') || isempty(mask)
+      map(:,1) = healmex.hpx_smoothing(map(:,1), fl, order, lmax, mmax, mmin, nside, rwghts, niter);
+	else
+      map(:,1) = healmex.hpx_smoothing(map(:,1).*mask, fl, order, lmax, mmax, mmin, nside, rwghts, niter);
+	end
   else
-    error('map: Expected size 2 in second dimension, got %d', size(map, 2));
+    error('map: Expected size 2 or 3 in second dimension, got %d', nstokes);
   end
 end
