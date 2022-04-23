@@ -91,7 +91,8 @@ enum libhealpix_mex_calls {
     id_smoothing_pol    = 72,
     id_smoothing        = 73,
     id_scan_rings_observed = 74,
-    id_compute_mcm      = 75
+    id_compute_mcm      = 75,
+    id_map2alm_polonly_iter = 76
 };
 
 class MexFunction : public matlab::mex::Function {
@@ -281,6 +282,23 @@ public:
                 CHECK_INPUT_INT32("map2alm_pol_iter", "iter", 9);
                 mex_map2alm_pol_iter(outputs, inputs);
                 break;
+
+            case id_map2alm_polonly_iter:
+                CHECK_NINOUT("map2alm_polonly_iter", 8, 2);
+                CHECK_INPUT_SCALAR("map2alm_polonly_iter", "nside", 1);
+                CHECK_INPUT_INT64("map2alm_polonly_iter", "nside", 1);
+                CHECK_INPUT_CHAR("map2alm_polonly_iter", "order", 2);
+                CHECK_INPUT_DOUBLE("map2alm_polonly_iter", "mapQ", 3);
+                CHECK_INPUT_DOUBLE("map2alm_polonly_iter", "mapU", 4);
+                CHECK_INPUT_SCALAR("map2alm_polonly_iter", "lmax", 5);
+                CHECK_INPUT_INT32("map2alm_polonly_iter", "lmax", 5);
+                CHECK_INPUT_SCALAR("map2alm_polonly_iter", "mmax", 6);
+                CHECK_INPUT_INT32("map2alm_polonly_iter", "mmax", 6);
+                CHECK_INPUT_DOUBLE("map2alm_polonly_iter", "rwghts", 7);
+                CHECK_INPUT_SCALAR("map2alm_polonly_iter", "iter", 8);
+                CHECK_INPUT_INT32("map2alm_polonly_iter", "iter", 8);
+                mex_map2alm_polonly_iter(outputs, inputs);
+                break;
 				
             case id_map2alm_pure:
                 CHECK_NINOUT("map2alm_pure", 10, 2);
@@ -314,7 +332,7 @@ public:
                 break;
 
             case id_alm2map_polonly:
-                CHECK_NINOUT("alm2map_polonly", 6, 2);
+                CHECK_NINOUT("alm2map_polonly", 7, 2);
                 CHECK_INPUT_SCALAR("alm2map_polonly", "lmax", 1);
                 CHECK_INPUT_INT32("alm2map_polonly", "lmax", 1);
                 CHECK_INPUT_SCALAR("alm2map_polonly", "mmax", 2);
@@ -324,6 +342,7 @@ public:
                 CHECK_INPUT_SCALAR("alm2map_polonly", "nside", 5);
                 CHECK_INPUT_INT64("alm2map_polonly", "nside", 5);
                 CHECK_INPUT_CHAR("alm2map_polonly", "order", 6);
+                CHECK_INPUT_DOUBLE("alm2map_polonly", "rwghts", 7);
                 mex_alm2map_polonly(outputs, inputs);
                 break;
 
@@ -390,7 +409,7 @@ public:
                 break;
 
             case id_smoothing:
-                CHECK_NINOUT("smoothing", 9, 2);
+                CHECK_NINOUT("smoothing", 9, 1);
                 CHECK_INPUT_SCALAR("smoothing", "nside", 1);
                 CHECK_INPUT_INT64("smoothing", "nside", 1);
                 CHECK_INPUT_CHAR("smoothing", "order", 2);
@@ -477,7 +496,7 @@ public:
 				break;
 	
 			case id_compute_mcm:
-                CHECK_NINOUT("compute_mcm", 7, 1);
+                CHECK_NINOUT("compute_mcm", 11, 1);
                 CHECK_INPUT_SCALAR("compute_mcm", "lmax", 1);
                 CHECK_INPUT_INT32("compute_mcm", "lmax", 1);
                 CHECK_INPUT_SCALAR("compute_mcm", "lmax_mask", 2);
@@ -489,6 +508,14 @@ public:
                 CHECK_INPUT_DOUBLE("compute_mcm", "rwghts", 6);
                 CHECK_INPUT_SCALAR("compute_mcm", "iter", 7);
                 CHECK_INPUT_INT32("compute_mcm", "iter", 7);
+                CHECK_INPUT_SCALAR("compute_mcm", "pe1", 8);
+                CHECK_INPUT_INT32("compute_mcm", "pe1", 8);
+                CHECK_INPUT_SCALAR("compute_mcm", "pe2", 9);
+                CHECK_INPUT_INT32("compute_mcm", "pe2", 9);
+                CHECK_INPUT_SCALAR("compute_mcm", "pb1", 10);
+                CHECK_INPUT_INT32("compute_mcm", "pb1", 10);
+                CHECK_INPUT_SCALAR("compute_mcm", "pb2", 11);
+                CHECK_INPUT_INT32("compute_mcm", "pb2", 11);
                 mex_compute_mcm(outputs, inputs);
 				break;
 				
@@ -516,6 +543,7 @@ private:
 
     DISPATCH_FN(map2alm_iter);
     DISPATCH_FN(map2alm_pol_iter);
+    DISPATCH_FN(map2alm_polonly_iter);
     DISPATCH_FN(map2alm_pure);
     DISPATCH_FN(alm2map);
     DISPATCH_FN(alm2map_pol);
@@ -931,6 +959,53 @@ for (int iter=1; iter<=num_iter; ++iter)
    }
  job.map2alm_spin(&mapQ2[0],&mapU2[0],&almG(0,0),&almC(0,0),spin,true);
  }
+}
+
+DISPATCH_FN(map2alm_polonly_iter) {
+    healpix base = nsideorder(inputs[1], inputs[2]);
+    auto [buf_mapQ, len_mapQ] = bufferlen<double>(inputs[3]);
+    auto [buf_mapU, len_mapU] = bufferlen<double>(inputs[4]);
+    auto lmax = scalar<int32_t>(inputs[5]);
+    auto mmax = scalar<int32_t>(inputs[6]);
+    auto [buf_wght, len_wght] = bufferlen<double>(inputs[7]);
+    auto iter = scalar<int32_t>(inputs[8]);
+
+    auto mapQ = healmap();
+    auto mapU = healmap();
+    {
+        arr<double> tmp(buf_mapQ.get(), len_mapQ);
+        mapQ.Set(tmp, base.Scheme());
+    }
+    {
+        arr<double> tmp(buf_mapU.get(), len_mapU);
+        mapU.Set(tmp, base.Scheme());
+    }
+
+    arr<double> rwghts(buf_wght.get(), len_wght);
+
+    auto nalms = Alm_Base::Num_Alms(lmax, mmax);
+    auto almsG = healalm();
+    auto almsC = healalm();
+
+    auto buf_almsG = factory.createBuffer<complex64>(nalms);
+    auto buf_almsC = factory.createBuffer<complex64>(nalms);
+    {
+        arr<complex64> tmp(buf_almsG.get(), nalms);
+        almsG.Set(tmp, lmax, mmax);
+    }
+    {
+        arr<complex64> tmp(buf_almsC.get(), nalms);
+        almsC.Set(tmp, lmax, mmax);
+    }
+
+    sharp_cxxjob<double> job;
+	job.set_weighted_Healpix_geometry (base.Nside(), &rwghts[0]);
+	job.set_triangular_alm_info (lmax, mmax);
+	
+	map2alm_spin_iter(job, mapQ, mapU, almsG, almsC, 2, iter);
+
+    outputs[0] = factory.createArrayFromBuffer({nalms}, move(buf_almsG));
+    outputs[1] = factory.createArrayFromBuffer({nalms}, move(buf_almsC));
 }
 
 DISPATCH_FN(map2alm_pure) {
@@ -1370,6 +1445,9 @@ DISPATCH_FN(alm2map_polonly) {
     auto [buf_almsG, len_almsG] = bufferlen<complex64>(inputs[3]);
     auto [buf_almsC, len_almsC] = bufferlen<complex64>(inputs[4]);
     healpix base = nsideorder(inputs[5], inputs[6]);
+    auto [buf_wght, len_wght] = bufferlen<double>(inputs[7]);
+
+    arr<double> rwghts(buf_wght.get(), len_wght);
 
     auto almsG = healalm();
     auto almsC = healalm();
@@ -1395,12 +1473,10 @@ DISPATCH_FN(alm2map_polonly) {
         arr<double> tmp(buf_mapU.get(), npix);
         mapU.Set(tmp, base.Scheme());
     }
-	
-	arr<double> wgt(2*base.Nside());
-    wgt.fill(1);
 
     sharp_cxxjob<double> job;
-	job.set_weighted_Healpix_geometry (base.Nside(), &wgt[0]);
+
+	job.set_weighted_Healpix_geometry (base.Nside(), &rwghts[0]);
 	job.set_triangular_alm_info (lmax, mmax);
 	
 	job.alm2map_spin(&almsG(0,0),&almsC(0,0),&mapQ[0],&mapU[0],2,false);
@@ -1715,6 +1791,11 @@ DISPATCH_FN(compute_mcm) {
     auto [buf_wght, len_wght] = bufferlen<double>(inputs[6]);
     auto iter = scalar<int32_t>(inputs[7]);
 
+    auto pe1 = scalar<int32_t>(inputs[8]);
+    auto pe2 = scalar<int32_t>(inputs[9]);
+    auto pb1 = scalar<int32_t>(inputs[10]);
+    auto pb2 = scalar<int32_t>(inputs[11]);
+
     auto map = healmap();
     {
         arr<double> tmp(buf_map.get(), len_map);
@@ -1741,12 +1822,7 @@ DISPATCH_FN(compute_mcm) {
     }
 	
 	int s1=2;
-	int s2=2;
-	int pe1=0;
-	int pe2=0;
-	int pb1=0;
-	int pb2=0;
-	
+	int s2=2;	
 	
 	int ncls=7;
 	

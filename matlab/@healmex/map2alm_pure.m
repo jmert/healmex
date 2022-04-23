@@ -1,4 +1,4 @@
-function alms = map2alm_pure(map, wmap, order, lmax, mmax, nside, niter, pureE)
+function alms = map2alm_pure(map, wmap, order, lmax, mmax, nside, niter, rwghts, pureE)
 % alms = map2alm_pure(map, wmap, order, lmax, mmax, nside, niter)
 %
 % INPUTS
@@ -56,11 +56,17 @@ function alms = map2alm_pure(map, wmap, order, lmax, mmax, nside, niter, pureE)
 
 
   % TODO: Allow real ring weights.
-  rwghts = ones(4 * nside - 1, 1);
+  if ~exist('rwghts', 'var') || isempty(rwghts)
+    rwghts = ones(4 * nside - 1, 1);
+  end
 
   if size(map, 2) == 1
     alms = healmex.hpx_map2alm(nside, order, map.*wmap, ...
         lmax, mmax, rwghts, niter);
+  elseif size(map, 2) == 2
+    [alms(:,1),alms(:,2)] = healmex.hpx_map2alm_pure(...
+        nside, order, map(:,1), map(:,2), wmap, ...
+        lmax, mmax, rwghts, niter, pureE);
   elseif size(map, 2) == 3
     alms(:,1) = healmex.hpx_map2alm(nside, order, map(:,1).*wmap(:,1), ...
         lmax, mmax, rwghts, niter);

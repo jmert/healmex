@@ -14,13 +14,14 @@ classdef healmex < matlab.mixin.CustomDisplay
 
     alms = map2alm(map, order, lmax, mmax, nside, niter, rwghts)
     alms = map2alm_pure(map, wmap, order, lmax, mmax, nside, niter, pureE)
-    map = alm2map(alms, nside, order, lmax, mmax)
+    map = alm2map(alms, nside, order, lmax, mmax, rwghts)
     alms = hpx_map2alm(nside, order, map, lmax, mmax, rwghts, iter)
     map = hpx_alm2map(lmax, mmax, alms, nside, order)
     [almsT,almsG,almsC] = hpx_map2alm_pol(nside, order, mapT, mapQ, mapU, lmax, mmax, rwghts, iter)
+    [almsG,almsC] = hpx_map2alm_polonly(nside, order, mapQ, mapU, lmax, mmax, rwghts, iter)
     [almsG,almsC] = hpx_map2alm_pure(nside, order, mapQ, mapU, mapW, lmax, mmax, rwghts, iter, pureE)
     [mapT,mapQ,mapU] = hpx_alm2map_pol(lmax, mmax, almsT, almsG, almsC, nside, order)
-    [mapQ,mapU] = hpx_alm2map_polonly(lmax, mmax, almsG, almsC, nside, order)
+    [mapQ,mapU] = hpx_alm2map_polonly(lmax, mmax, almsG, almsC, nside, order, rwghts)
 	
     [mapQ,mapU] = hpx_smoothing_pol(mapQ, mapU, fle, flb, order, lmax, mmax, mmin, nside, rwghts, niter)
     map = hpx_smoothing(map, fl, order, lmax, mmax, mmin, nside, rwghts, niter)
@@ -44,8 +45,8 @@ classdef healmex < matlab.mixin.CustomDisplay
     amap = smooth_mask(map, radius, order)
     amap = hpx_smooth_mask(nside, order, map, radius, rwghts)
 	
-	rwghts = scan_rings_observed(map)
-	mcm = mask_bpwf(mask, lmax, lmax_mask, order, niter, rwghts)
+	  rwghts = scan_rings_observed(map)
+	  mcm = mask_bpwf(mask, lmax, lmax_mask, order, niter, rwghts, pureB)
   end
 
   methods (Access = protected)
