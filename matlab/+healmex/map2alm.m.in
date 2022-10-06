@@ -1,63 +1,65 @@
-function varargout = map2alm(mapT, mapQ, mapU, opt)
-% [almsT, almsG, almsC] = map2alm(mapT, mapQ, mapU, ...)
-%                  alms = map2alm(map, ...)
+function alms = map2alm(map, order, lmax, mmax, nside, niter)
+% alms = map2alm(map, order, lmax, mmax, nside, niter)
 %
 % INPUTS
-%   mapT, map     Map in RING order to be scalar transformed.
-%   mapQ          Stokes Q field map in RING order to be spin-2 transformed.
-%                 Must be provided as a pair of maps with mapU.
-%   mapU          Stokes U field map in RING order to be spin-2 transformed.
-%                 Must be provided as a pair of maps with mapQ.
+%   map     An Nx1 or Nx3 matrix of map pixel values. Column 1 is assumed to
+%           be the intensity map, and columns 2 and 3 are assumed to be the
+%           Stokes Q and U fields, respectively.
 %
-% KEY-VALUE PAIRS
-%   'lmax'  The maximum degree harmonic coefficient to compute. Defaults to
+%   lmax    The maximum degree harmonic coefficient to compute. Defaults to
 %           3*nside-1 if not provided.
 %
-%   'mmax'  The maximum order harmonic coefficient to compute. Defaults to
+%   mmax    The maximum order harmonic coefficient to compute. Defaults to
 %           lmax if not provided.
 %
-%   'iter'  Defaults to 3. Number of iterations to perform in convergence to
-%           spherical harmonic coefficients, where 0 iterations is a single
-%           analysis transform without any iterative updates.
+%   nside   HEALPix nside of the map. Inferred from length of dimension one
+%           of map if not provided.
+%
+%   niter   Number of iterations to perform in convergence to spherical
+%           harmonic coefficients. Defaults to 1.
 %
 % OUTPUTS
-%   almsT, alms   Scalar spherical harmonic coefficients.
-%   almsG         Gradient component of spin spherical harmonic coefficients.
-%   almsC         Curl component of spin spherical harmonic coefficients.
+%   alms    The spherical harmonic coefficients of map. If map is Nx1, then
+%           alms is an Mx1 vector of scalar (non-spin) coefficients (i.e.
+%           temperature). If map is Nx3, the column 1 is the scalar (non-spin)
+%           coefficients, and columsn 2 and 3 are the gradient and curl,
+%           respectively, spin-2 transforms.
 %
 % EXAMPLE
+%
 
-  arguments
-    mapT     (:,1) {mustBeNumeric}
-    mapQ     (:,1) {mustBeNumeric} = []
-    mapU     (:,1) {mustBeNumeric} = []
-    opt.lmax       {mustBeNumeric,mustBeScalarOrEmpty} = []
-    opt.mmax       {mustBeNumeric,mustBeScalarOrEmpty} = []
-    opt.iter       {mustBeNumeric,mustBeScalarOrEmpty} = 3
+  if ~exist('order', 'var') || isempty(order)
+    order = 'RING';
+  end
+  if ~exist('niter', 'var') || isempty(niter)
+    niter = 1;
   end
 
-  lmax = opt.lmax;
-  mmax = opt.mmax;
-  iter = opt.iter;
-  nside = @PACKAGEPREFIX@npix2nside(size(mapT, 1));
+  if ~exist('nside', 'var') || isempty(nside)
+    nside = @CLASSPREFIX@npix2nside(size(map, 1));
+  end
 
-  if isempty(lmax)
+  if ~exist('lmax', 'var') || isempty(lmax)
     lmax = 3 * nside - 1;
   end
-  if isempty(mmax)
+  if ~exist('mmax', 'var') || isempty(mmax)
     mmax = lmax;
   end
 
   % TODO: Allow real ring weights.
-  rwghts = ones(4 * nside - 1, 1);
+  if ~exist('rwghts', 'var') || isempty(rwghts)
+    rwghts = ones(4 * nside - 1, 1);
+  end
 
-  [almsT,almsG,almsC] = libhealmex(int64(53), ...
-      int64(nside), double(mapT), double(mapQ), double(mapU), ...
-      int32(lmax), int32(mmax), double(rwghts), int32(iter));
-
-  varargout{1} = almsT;
-  if ~isempty(mapQ)
-    varargout{2} = almsG;
-    varargout{3} = almsC;
+  if size(map, 2) == 1
+    alms = @CLASSPREFIX@hpx_map2alm(nside, order, map, ...
+        lmax, mmax, rwghts, niter);
+  elseif size(map, 2) == 3
+    [alms(:,1),alms(:,2),alms(:,3)] = @CLASSPREFIX@hpx_map2alm_pol(...
+        nside, order, map(:,1), map(:,2), map(:,3), ...
+        lmax, mmax, rwghts, niter);
+  else
+    error('map: Expected size 1 or 3 in second dimension, got %d', ...
+        size(map, 2));
   end
 end

@@ -1,46 +1,57 @@
-function varargout = alm2map(nside, almsT, almsG, almsC, opt)
-% [mapT, mapQ, mapU] = alm2map(nside, almsT, almsG, almsC, ...)
-%                map = alm2map(nside, alms, ...)
+function map = alm2map(alms, nside, order, lmax, mmax)
+% map = alm2map(alms, nside, order, lmax, mmax)
+%
+% Synthesizes map(s) from the provided alms at Nside = nside and for the
+% pixelization ordering order.
 %
 % INPUTS
-%   nside         HEALPix Nside of output map to synthesize.
-%   almsT, alms   Scalar spherical harmonic coefficients.
-%   almsG         Gradient component of spin spherical harmonic coefficients.
-%                 Must be provided as a pair with almsC.
-%   almsC         Curl component of spin spherical harmonic coefficients.
-%                 Must be provided as a pair with almsG.
+%   alms    The spherical harmonic coefficients of map. If map is Nx1, then
+%           alms is an Mx1 vector of scalar (non-spin) coefficients (i.e.
+%           temperature). If map is Nx3, the column 1 is the scalar (non-spin)
+%           coefficients, and columns 2 and 3 are the gradient and curl,
+%           respectively, spin-2 transforms. If map is Nx2, columns 1 and 2 
+%           are the gradient and curl, respectively, spin-2 transforms.
 %
-% KEY-VALUE PAIRS
-%   'lmax'        The maximum degree harmonic coefficient to compute.
-%                 Optional if inferrable by alm_getlmmax().
-%   'mmax'        The maximum order harmonic coefficient to compute.
-%                 Optional if inferrable by alm_getlmmax().
+%   nside   HEALPix Nside of output map to synthesize.
+%
+%   order   HEALPix map pixelization order, either 'RING' or 'NESTED'.
+%           Defaults to 'RING'.
+%
+%   lmax    The maximum degree harmonic coefficient to compute. Optional if
+%           inferrable by alm_getlmmax().
+%
+%   mmax    The maximum order harmonic coefficient to compute. Optional if
+%           inferrable by alm_getlmmax()l
 %
 % OUTPUTS
-%   mapT, map     Scalar (non-spin) transform of almsT.
-%   mapQ          Spin transform of almsG and almsC to the Stokes Q field.
-%   mapU          Spin transform of almsG and almsC to the Stokes U field.
+%   map     An Nx1 or Nx3 matrix of map pixel values. Column 1 is assumed to
+%           be the intensity map, and columns 2 and 3 are assumed to be the
+%           Stokes Q and U fields, respectively.
 %
 % EXAMPLE
 
-  arguments
-    nside    (1,1) {mustBeInteger,mustBeNonnegative}
-    almsT    (:,1) {mustBeNumeric}
-    almsG    (:,1) {mustBeNumeric} = []
-    almsC    (:,1) {mustBeNumeric} = []
-    opt.lmax       {mustBeNumeric,mustBeScalarOrEmpty} = []
-    opt.mmax       {mustBeNumeric,mustBeScalarOrEmpty} = []
+  if ~exist('order', 'var') || isempty(order)
+    order = 'RING';
+  end
+  if ~exist('lmax', 'var')
+    lmax = [];
+  end
+  if ~exist('mmax', 'var')
+    mmax = [];
   end
 
-  [lmax, mmax] = @PACKAGEPREFIX@alm_getlmmax(almsT, opt.lmax, opt.mmax);
-  [mapT, mapQ, mapU] = libhealmex(int64(55), ...
-      int32(lmax), int32(mmax), ...
-      complex(double(almsT)), complex(double(almsG)), complex(double(almsC)), ...
-      int64(nside));
+  [lmax, mmax] = @CLASSPREFIX@alm_getlmmax(alms, lmax, mmax);
 
-  varargout{1} = mapT;
-  if ~isempty(almsG)
-    varargout{2} = mapQ;
-    varargout{3} = mapU;
+  if size(alms, 2) == 1
+    map = @CLASSPREFIX@hpx_alm2map(lmax, mmax, alms, nside, order);
+  elseif size(alms, 2) == 2
+    [map(:,1),map(:,2)] = @CLASSPREFIX@hpx_alm2map_polonly(...
+        lmax, mmax, alms(:,1), alms(:,2), nside, order);
+  elseif size(alms, 2) == 3
+    [map(:,1),map(:,2),map(:,3)] = @CLASSPREFIX@hpx_alm2map_pol(...
+        lmax, mmax, alms(:,1), alms(:,2), alms(:,3), nside, order);
+  else
+    error('alms: Expected size 1, 2 or 3 in second dimension, got %d', ...
+        size(alms, 2));
   end
 end
