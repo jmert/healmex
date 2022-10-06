@@ -7,10 +7,6 @@ function idx = alm_getidx(lmax, l, m)
   if ~isscalar(lmax)
     error('lmax must be a scalar');
   end
-  m = m(:);
-  if length(m) > 1
-    l = l(:).';
-  end
+  
   idx = m .* (2*lmax+1 - m) / 2 + l + 1;
-  idx = idx(:);
 end
