@@ -1,0 +1,63 @@
+function varargout = map2alm(mapT, mapQ, mapU, opt)
+% [almsT, almsG, almsC] = map2alm(mapT, mapQ, mapU, ...)
+%                  alms = map2alm(map, ...)
+%
+% INPUTS
+%   mapT, map     Map in RING order to be scalar transformed.
+%   mapQ          Stokes Q field map in RING order to be spin-2 transformed.
+%                 Must be provided as a pair of maps with mapU.
+%   mapU          Stokes U field map in RING order to be spin-2 transformed.
+%                 Must be provided as a pair of maps with mapQ.
+%
+% KEY-VALUE PAIRS
+%   'lmax'  The maximum degree harmonic coefficient to compute. Defaults to
+%           3*nside-1 if not provided.
+%
+%   'mmax'  The maximum order harmonic coefficient to compute. Defaults to
+%           lmax if not provided.
+%
+%   'iter'  Defaults to 3. Number of iterations to perform in convergence to
+%           spherical harmonic coefficients, where 0 iterations is a single
+%           analysis transform without any iterative updates.
+%
+% OUTPUTS
+%   almsT, alms   Scalar spherical harmonic coefficients.
+%   almsG         Gradient component of spin spherical harmonic coefficients.
+%   almsC         Curl component of spin spherical harmonic coefficients.
+%
+% EXAMPLE
+
+  arguments
+    mapT     (:,1) {mustBeNumeric}
+    mapQ     (:,1) {mustBeNumeric} = []
+    mapU     (:,1) {mustBeNumeric} = []
+    opt.lmax       {mustBeNumeric,mustBeScalarOrEmpty} = []
+    opt.mmax       {mustBeNumeric,mustBeScalarOrEmpty} = []
+    opt.iter       {mustBeNumeric,mustBeScalarOrEmpty} = 3
+  end
+
+  lmax = opt.lmax;
+  mmax = opt.mmax;
+  iter = opt.iter;
+  nside = @PACKAGEPREFIX@npix2nside(size(mapT, 1));
+
+  if isempty(lmax)
+    lmax = 3 * nside - 1;
+  end
+  if isempty(mmax)
+    mmax = lmax;
+  end
+
+  % TODO: Allow real ring weights.
+  rwghts = ones(4 * nside - 1, 1);
+
+  [almsT,almsG,almsC] = libhealmex(int64(53), ...
+      int64(nside), double(mapT), double(mapQ), double(mapU), ...
+      int32(lmax), int32(mmax), double(rwghts), int32(iter));
+
+  varargout{1} = almsT;
+  if ~isempty(mapQ)
+    varargout{2} = almsG;
+    varargout{3} = almsC;
+  end
+end

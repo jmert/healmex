@@ -1,0 +1,48 @@
+function himg = mollview(map, opt)
+% himg = mollview(map, ...)
+%
+% INPUTS
+%   map         A HEALPix map vector.
+%
+% KEY-VALUE PAIRS
+%   'lat'       Defaults to [ -90  90]. Range of latitudes (in degrees) to plot.
+%   'lon'       Defaults to [-180 180]. Range of longitudes (in degrees) to plot.
+%   'nest'      Defaults to false. If true, map is in NESTED ordering,
+%               otherwise RING.
+%   'xsize'     Defaults to 1600. Horizontal resolution of the image to draw.
+%
+% OUTPUTS
+%   himg        Graphics handle to the plotted image.
+
+  arguments
+    map        (:,1) {mustBeNumeric}
+    opt.lat    (1,2) {mustBeNumeric} = [-90  90]
+    opt.lon    (1,2) {mustBeNumeric} = [-180 180]
+    opt.nest   (1,1) logical = false
+    opt.xsize  (1,1) {mustBeNonnegative} = 1600
+  end
+
+  xra = diff(opt.lon);
+  yra = diff(opt.lat);
+  % xx, yy are edges of square pixel grid
+  % xc, yc are centers of those pixels
+  xx = linspace(opt.lon(1), opt.lon(2), opt.xsize + 1);
+  yy = linspace(opt.lat(1), opt.lat(2), opt.xsize*yra/xra + 1);
+  xc = xx(2:end) - xra / opt.xsize;
+  yc = yy(2:end) - yra / (opt.xsize*yra/xra);
+  [xc, yc] = meshgrid(xc, yc);
+  [xx, yy] = meshgrid(xx, yy);
+
+  % Do nearest-neighbor sampling
+  nside = @PACKAGEPREFIX@npix2nside(size(map, 1));
+  ipix = @PACKAGEPREFIX@ang2pix(nside, yc(:), xc(:), 'nest', opt.nest, 'latlon', true);
+  img = NaN(size(xx));
+  img(1:end-1, 1:end-1) = reshape(map(ipix+1), size(xc));
+
+  % Plot with mapping toolbox
+  mstruct = defaultm('mollweid', ...
+      'maplatlimit', opt.lat, 'maplonlimit', opt.lon);
+  axesm(mstruct);
+  himg = pcolorm(yy, xx, img);
+  himg.AlphaData = ~isnan(map);
+end

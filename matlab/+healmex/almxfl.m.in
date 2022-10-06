@@ -1,0 +1,35 @@
+function alms = almxfl(alms, fl, opt)
+% alms = almxfl(alms, fl, varargin)
+%
+% Multiplies a set of alms by a vector fl.
+%
+% INPUTS
+%   alms        Vector or matrix of spherical harmonic coefficients.
+%
+%   fl          Vector of factors f_l by which to multiply a_lm.
+%
+% KEY-VALUE PAIRS
+%   'lmax'      The maximum degree harmonic coefficient to compute. Optional if
+%               inferrable by alm_getlmmax().
+%
+%   'mmax'      The maximum order harmonic coefficient to compute. Optional if
+%               inferrable by alm_getlmmax().
+%
+% OUTPUTS
+%   alms    Modified alms.
+
+  arguments
+    alms     (:,:) {mustBeNumeric}
+    fl       (:,1) {mustBeNumeric}
+    opt.lmax       {mustBeNumeric,mustBeScalarOrEmpty} = []
+    opt.mmax       {mustBeNumeric,mustBeScalarOrEmpty} = []
+  end
+
+  [lmax, mmax] = @PACKAGEPREFIX@alm_getlmmax(alms, opt.lmax, opt.mmax);
+
+  alms = complex(double(alms));
+  for ii = 1:size(alms,2)
+    alms(:,ii) = libhealmex(int64(62), ...
+        int32(lmax), int32(mmax), complex(alms(:,ii)), complex(double(fl)));
+  end
+end

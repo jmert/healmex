@@ -8,7 +8,7 @@ set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS}
 set(CMAKE_SHARED_LINKER_FLAGS ${CMAKE_SHARED_LINKER_FLAGS}
     "-Wl,--no-undefined -static-libstdc++ -L$CFITSIO_LIB -lcfitsio")
 
-# v3.12.0 fixes an error in dealin with default library search paths in pkg_search_module.
+# v3.12.0 fixes an error in dealing with default library search paths in pkg_search_module.
 # (see https://gitlab.kitware.com/cmake/cmake/-/merge_requests/2027)
 if (${CMAKE_VERSION} VERSION_LESS 3.12.0)
     set(FIND_PKGCONFIG CONFIGS FindPkgConfig.cmake NO_CMAKE_PATH PATHS ${CMAKE_SOURCE_DIR}/cmake/)
@@ -16,9 +16,9 @@ endif()
 find_package(PkgConfig REQUIRED ${FIND_PKGCONFIG})
 
 # v3.14.0 is the first version which becomes fully R2018a-aware with the
-# C++ Data API handled.
+# C++ Data API handled. We've vendored the 3.20.0 version.
 set(MATLAB_FIND_DEBUG 1)
-if (${CMAKE_VERSION} VERSION_LESS 3.14.0)
+if (${CMAKE_VERSION} VERSION_LESS 3.20.0)
     set(FIND_MATLAB CONFIGS FindMatlab.cmake NO_CMAKE_PATH PATHS ${CMAKE_SOURCE_DIR}/cmake/)
 endif()
 find_package(Matlab REQUIRED ${FIND_MATLAB})

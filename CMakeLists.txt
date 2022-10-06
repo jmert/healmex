@@ -6,7 +6,7 @@ cmake_minimum_required(VERSION 3.9.0)
 cmake_policy(SET CMP0017 NEW) # https://cmake.org/cmake/help/v3.11/policy/CMP0017.html
 
 project(healmex CXX)
-option(ASCLASS "install healmex as a Matlab class" ON)
+option(ASPACKAGE "install healmex as a Matlab package" ON)
 option(USE_SYSTEM_HEALPIX "use OS healpix library (if present)" ON)
 
 # Include environment's paths library searches
@@ -114,28 +114,28 @@ if ((NOT LIBSHARP_FOUND) OR (NOT HEALPIX_CXX_FOUND))
     add_dependencies(healmex libsharp healpix)
 endif()
 
-if (ASCLASS)
+if (ASPACKAGE)
     set(PKGBASE "")
-    set(CLASSPREFIX "healmex.")
+    set(PACKAGEPREFIX "healmex.")
 else()
-    set(PKGBASE "@healmex/")
-    set(CLASSPREFIX "")
+    set(PKGBASE "+healmex/")
+    set(PACKAGEPREFIX "")
 endif()
 
-file(GLOB MFILES  "${CMAKE_SOURCE_DIR}/matlab/@healmex/*.m")
-file(GLOB INFILES "${CMAKE_SOURCE_DIR}/matlab/@healmex/*.m.in")
+file(GLOB MFILES  "${CMAKE_SOURCE_DIR}/matlab/+healmex/*.m")
+file(GLOB INFILES "${CMAKE_SOURCE_DIR}/matlab/+healmex/*.m.in")
 
 # Copy Matlab scripts into the build directory.
 foreach(INFILE ${INFILES})
     get_filename_component(FILENAME ${INFILE} NAME_WE)
-    set(FILENAME "${CMAKE_BINARY_DIR}/matlab/@healmex/${FILENAME}.m")
+    set(FILENAME "${CMAKE_BINARY_DIR}/matlab/+healmex/${FILENAME}.m")
     message(STATUS "Configuring: ${FILENAME}")
     configure_file(${INFILE} ${FILENAME} @ONLY)
 endforeach()
 if (NOT (${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR}))
     foreach(MFILE ${MFILES})
         get_filename_component(FILENAME ${MFILE} NAME)
-        set(FILENAME "${CMAKE_BINARY_DIR}/matlab/@healmex/${FILENAME}")
+        set(FILENAME "${CMAKE_BINARY_DIR}/matlab/+healmex/${FILENAME}")
         message(STATUS "Staging: ${FILENAME}")
         execute_process(COMMAND ${CMAKE_COMMAND} -E copy_if_different
             ${MFILE} ${FILENAME})
@@ -146,7 +146,7 @@ endif()
 install(DIRECTORY ${CMAKE_BINARY_DIR}/matlab/
     DESTINATION ${CMAKE_INSTALL_PREFIX}
     FILES_MATCHING
-    PATTERN "@healmex" EXCLUDE
+    PATTERN "+healmex" EXCLUDE
     PATTERN "*.mex*"
     )
 install(DIRECTORY ${CMAKE_BINARY_DIR}/matlab/${PKGBASE}

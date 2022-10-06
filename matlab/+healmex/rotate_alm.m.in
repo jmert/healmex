@@ -1,0 +1,113 @@
+function alms = rotate_alm(alms, rotate, opt)
+% alms = rotate_alms(alms, rotate, ...)
+% INPUTS
+%   alms        A Nx1 or Nx3 complex matrix of spherical harmonic coefficients.
+%
+%   rotate      Rotation to perform. Valid specifications are:
+%               1. A pair of characters among 'C', 'E', & 'G' to indicate
+%                  transforming from/to celestial (equatorial), ecliptic, and
+%                  galactic coordinates (all J2000), respectively.
+%
+%               2. A 3-vector of euler rotation angles [psi, theta, phi] in
+%                  radians (right-handed active rotation in ZYZ convention).
+%
+%               2. A 3x3 rotation matrix, with the rotation in terms of ZYZ
+%                  euler angles consistent with the composition
+%                    R = rotz(phi) * roty(theta) * rotz(psi)
+%                  (where psi,theta,phi are in degrees to match Matlab's rot
+%                  functions).
+%
+%               4. A scalar integer from the following list:
+%                      1 = Equatorial (2000) -> Galactic   (2000)
+%                      2 = Galactic   (2000) -> Equatorial (2000)
+%                      3 = Equatorial (2000) -> Ecliptic   (2000)
+%                      4 = Ecliptic   (2000) -> Equatorial (2000)
+%                      5 = Ecliptic   (2000) -> Galactic   (2000)
+%                      6 = Galactic   (2000) -> Ecliptic   (2000)
+%                      7 = Equatorial (1950) -> Galactic   (1950)
+%                      8 = Galactic   (1950) -> Equatorial (1950)
+%                      9 = Equatorial (1950) -> Ecliptic   (1950)
+%                     10 = Ecliptic   (1950) -> Equatorial (1950)
+%                     11 = Ecliptic   (1950) -> Galactic   (1950)
+%                     12 = Galactic   (1950) -> Ecliptic   (1950)
+%
+% KEY-VALUE PAIRS
+%   'lmax'      The maximum degree harmonic coefficient to compute. Optional if
+%               inferrable by alm_getlmmax().
+%
+%   'mmax'      The maximum order harmonic coefficient to compute. Optional if
+%               inferrable by alm_getlmmax().
+%
+% OUTPUTS
+%   alms        The given alms after coordinate rotation.
+%
+% EXAMPLE
+
+  arguments
+    alms     (:,:) {mustBeNumeric}
+    rotate
+    opt.lmax       {mustBeNumeric,mustBeScalarOrEmpty} = []
+    opt.mmax       {mustBeNumeric,mustBeScalarOrEmpty} = []
+  end
+
+  [lmax, mmax] = @PACKAGEPREFIX@alm_getlmmax(alms, opt.lmax, opt.mmax);
+
+  if size(alms, 2) == 1
+    % T-only alms - pass through empty/dummy complex alms as almsG & almsC
+    almsT = complex(double(alms));
+    almsG = complex(double([]));
+    almsC = complex(double([]));
+  elseif size(alms, 2) == 3
+    % T + Pol alms case
+    almsT = complex(double(alms(:,1)));
+    almsG = complex(double(alms(:,2)));
+    almsC = complex(double(alms(:,3)));
+  else
+    throwAsCaller(MException('healmex:rotate_alm:dimensionMismatch', ...
+        'Expected alms to have size 1 or 3 in second dimension, got %d', size(alms, 2)));
+  end
+
+  % Rotate by coordinate transformation name
+  if ischar(rotate)
+    if length(rotate) ~= 2
+      error('rotate string must be two characters')
+    end
+    if ~any(upper(rotate(1))=='CEG') || ~any(upper(rotate(2))=='CEG')
+      error('Only ''C'', ''E'', and ''G'' rotations are supported')
+    end
+    % abbreviations for the first 6 numbered transforms
+    itransforms = {'CG', 'GC', 'CE', 'EC', 'EG', 'GE'};
+    % Fall through to numbered transform case
+    rotate = strmatch(rotate, itransforms, 'exact');
+  end
+
+  % Rotate by euler angles
+  if isvector(rotate) && length(rotate) == 3
+    [almsT,almsG,almsC] = libhealmex(int64(66), ...
+        double(rotate), int32(lmax), int32(mmax), ...
+        almsT, almsG, almsC);
+
+  % Rotation by a matrix
+  elseif ismatrix(rotate) && all(size(rotate) == [3,3])
+    [almsT,almsG,almsC] = libhealmex(int64(67), ...
+        double(rotate), int32(lmax), int32(mmax), ...
+        almsT, almsG, almsC);
+
+  % Rotate by coordinate transformation ID number
+  elseif isscalar(rotate) && fix(rotate) == rotate
+    if rotate < 0 || rotate > 12
+      error('Invalid coordinate transform ID: %d', rotate);
+    end
+    [almsT,almsG,almsC] = libhealmex(int64(65), ...
+        int32(rotate), int32(lmax), int32(mmax), ...
+        almsT, almsG, almsC);
+  else
+    error('Invalid rotation specification')
+  end
+
+  if size(alms, 2) == 1
+    alms = almsT;
+  else
+    alms = [almsT almsG almsC];
+  end
+end

@@ -1,0 +1,46 @@
+function varargout = alm2map(nside, almsT, almsG, almsC, opt)
+% [mapT, mapQ, mapU] = alm2map(nside, almsT, almsG, almsC, ...)
+%                map = alm2map(nside, alms, ...)
+%
+% INPUTS
+%   nside         HEALPix Nside of output map to synthesize.
+%   almsT, alms   Scalar spherical harmonic coefficients.
+%   almsG         Gradient component of spin spherical harmonic coefficients.
+%                 Must be provided as a pair with almsC.
+%   almsC         Curl component of spin spherical harmonic coefficients.
+%                 Must be provided as a pair with almsG.
+%
+% KEY-VALUE PAIRS
+%   'lmax'        The maximum degree harmonic coefficient to compute.
+%                 Optional if inferrable by alm_getlmmax().
+%   'mmax'        The maximum order harmonic coefficient to compute.
+%                 Optional if inferrable by alm_getlmmax().
+%
+% OUTPUTS
+%   mapT, map     Scalar (non-spin) transform of almsT.
+%   mapQ          Spin transform of almsG and almsC to the Stokes Q field.
+%   mapU          Spin transform of almsG and almsC to the Stokes U field.
+%
+% EXAMPLE
+
+  arguments
+    nside    (1,1) {mustBeInteger,mustBeNonnegative}
+    almsT    (:,1) {mustBeNumeric}
+    almsG    (:,1) {mustBeNumeric} = []
+    almsC    (:,1) {mustBeNumeric} = []
+    opt.lmax       {mustBeNumeric,mustBeScalarOrEmpty} = []
+    opt.mmax       {mustBeNumeric,mustBeScalarOrEmpty} = []
+  end
+
+  [lmax, mmax] = @PACKAGEPREFIX@alm_getlmmax(almsT, opt.lmax, opt.mmax);
+  [mapT, mapQ, mapU] = libhealmex(int64(55), ...
+      int32(lmax), int32(mmax), ...
+      complex(double(almsT)), complex(double(almsG)), complex(double(almsC)), ...
+      int64(nside));
+
+  varargout{1} = mapT;
+  if ~isempty(almsG)
+    varargout{2} = mapQ;
+    varargout{3} = mapU;
+  end
+end
