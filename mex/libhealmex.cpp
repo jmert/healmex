@@ -693,16 +693,12 @@ private:
     DISPATCH_FN(smoothing_pol);
     DISPATCH_FN(smoothing);
 
-    /* Utility functions */
     DISPATCH_FN(scan_rings_observed);
     DISPATCH_FN(compute_mcm);
     DISPATCH_FN(map2alm_spin_iter);
-    DISPATCH_FN(alm2map);
     DISPATCH_FN(alm2map_spin);
     DISPATCH_FN(alm2map_der1);
 
-    DISPATCH_FN(alm2cl);
-    DISPATCH_FN(almxfl);
     DISPATCH_FN(rotate_alm_coord);
     DISPATCH_FN(rotate_alm_euler);
     DISPATCH_FN(rotate_alm_matrix);
