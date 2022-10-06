@@ -862,6 +862,22 @@ template<typename T> void map2alm_spin_iter(
     }
 }
 
+
+void map2alm_spin_iter(sharp_cxxjob<double> &job, Healpix_Map<double> &mapQ, Healpix_Map<double> &mapU, Alm<xcomplex<double> > &almG, Alm<xcomplex<double> > &almC, int spin, int num_iter){
+    job.map2alm_spin(&mapQ[0],&mapU[0],&almG(0,0),&almC(0,0),spin,false);
+    for (int iter=1; iter<=num_iter; ++iter){
+        Healpix_Map<double> mapQ2(mapQ.Nside(),mapQ.Scheme(),SET_NSIDE),mapU2(mapU.Nside(),mapU.Scheme(),SET_NSIDE);
+        
+        job.alm2map_spin(&almG(0,0),&almC(0,0),&mapQ2[0],&mapU2[0],spin,false);
+        #pragma omp parallel for
+        for (int m=0; m<mapQ.Npix(); ++m){
+            mapQ2[m] = mapQ[m]-mapQ2[m];
+            mapU2[m] = mapU[m]-mapU2[m];
+        }
+        job.map2alm_spin(&mapQ2[0],&mapU2[0],&almG(0,0),&almC(0,0),spin,true);
+    }
+}
+
 /* Externally callable function implementations */
 
 #define DISPATCH_FN(name) \
@@ -1217,6 +1233,54 @@ DISPATCH_FN(map2alm_iter) {
     outputs[0] = factory.createArrayFromBuffer({nalms}, move(buf_almsT));
     outputs[1] = factory.createArrayFromBuffer({do_pol ? nalms : (size_t)0}, move(buf_almsG));
     outputs[2] = factory.createArrayFromBuffer({do_pol ? nalms : (size_t)0}, move(buf_almsC));
+}
+
+
+DISPATCH_FN(map2alm_polonly_iter) {
+    healpix base = nsideorder(inputs[1], inputs[2]);
+    auto [buf_mapQ, len_mapQ] = bufferlen<double>(inputs[3]);
+    auto [buf_mapU, len_mapU] = bufferlen<double>(inputs[4]);
+    auto lmax = scalar<int32_t>(inputs[5]);
+    auto mmax = scalar<int32_t>(inputs[6]);
+    auto [buf_wght, len_wght] = bufferlen<double>(inputs[7]);
+    auto iter = scalar<int32_t>(inputs[8]);
+
+    auto mapQ = healmap();
+    auto mapU = healmap();
+    {
+        arr<double> tmp(buf_mapQ.get(), len_mapQ);
+        mapQ.Set(tmp, base.Scheme());
+    }
+    {
+        arr<double> tmp(buf_mapU.get(), len_mapU);
+        mapU.Set(tmp, base.Scheme());
+    }
+
+    arr<double> rwghts(buf_wght.get(), len_wght);
+
+    auto nalms = Alm_Base::Num_Alms(lmax, mmax);
+    auto almsG = healalm();
+    auto almsC = healalm();
+
+    auto buf_almsG = factory.createBuffer<complex64>(nalms);
+    auto buf_almsC = factory.createBuffer<complex64>(nalms);
+    {
+        arr<complex64> tmp(buf_almsG.get(), nalms);
+        almsG.Set(tmp, lmax, mmax);
+    }
+    {
+        arr<complex64> tmp(buf_almsC.get(), nalms);
+        almsC.Set(tmp, lmax, mmax);
+    }
+
+    sharp_cxxjob<double> job;
+	job.set_weighted_Healpix_geometry (base.Nside(), &rwghts[0]);
+	job.set_triangular_alm_info (lmax, mmax);
+	
+	map2alm_spin_iter(job, mapQ, mapU, almsG, almsC, 2, iter);
+
+    outputs[0] = factory.createArrayFromBuffer({nalms}, move(buf_almsG));
+    outputs[1] = factory.createArrayFromBuffer({nalms}, move(buf_almsC));
 }
 
 
