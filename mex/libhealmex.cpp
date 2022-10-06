@@ -823,6 +823,8 @@ void _scan_rings_observed(int64_t nside, const double* map, bool* ring) {
         }
         ring[rr-1] = n_occupied || s_occupied;
         base += ringlen;
+    }
+}
 
 /* libhealpix doesn't provide a map2alm_spin_iter interface which takes a number
  * of iterations - it only has the *_iter2 interface variant which works until
