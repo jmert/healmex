@@ -103,9 +103,9 @@ enum libhealpix_mex_calls {
     id_query_disc       = 19,
     id_neighbors        = 20,
     id_map2alm_iter     = 53,
-    id_map2alm_spin_iter= 54,
+    id_map2alm_pol_iter = 54,
     id_alm2map          = 55,
-    id_alm2map_spin     = 56,
+    id_alm2map_pol      = 56,
     id_alm2map_der1     = 57,
     id_map2alm_pure     = 58,
     id_alm2cl           = 61,
@@ -353,38 +353,37 @@ public:
                 break;
 
             case id_map2alm_iter:
-                CHECK_NINOUT("map2alm_iter", 8, 3);
+                CHECK_NINOUT("map2alm_iter", 7, 1);
                 CHECK_INPUT_SCALAR("map2alm_iter", "nside", 1);
                 CHECK_INPUT_INT64("map2alm_iter", "nside", 1);
-                CHECK_INPUT_DOUBLE("map2alm_iter", "mapT", 2);
-                CHECK_INPUT_DOUBLE("map2alm_iter", "mapQ", 3);
-                CHECK_INPUT_DOUBLE("map2alm_iter", "mapU", 4);
-                CHECK_INPUT_SCALAR("map2alm_iter", "lmax", 5);
-                CHECK_INPUT_INT32("map2alm_iter", "lmax", 5);
-                CHECK_INPUT_SCALAR("map2alm_iter", "mmax", 6);
-                CHECK_INPUT_INT32("map2alm_iter", "mmax", 6);
-                CHECK_INPUT_DOUBLE("map2alm_iter", "rwghts", 7);
-                CHECK_INPUT_SCALAR("map2alm_iter", "iter", 8);
-                CHECK_INPUT_INT32("map2alm_iter", "iter", 8);
+                CHECK_INPUT_CHAR("map2alm_iter", "order", 2);
+                CHECK_INPUT_DOUBLE("map2alm_iter", "map", 3);
+                CHECK_INPUT_SCALAR("map2alm_iter", "lmax", 4);
+                CHECK_INPUT_INT32("map2alm_iter", "lmax", 4);
+                CHECK_INPUT_SCALAR("map2alm_iter", "mmax", 5);
+                CHECK_INPUT_INT32("map2alm_iter", "mmax", 5);
+                CHECK_INPUT_DOUBLE("map2alm_iter", "rwghts", 6);
+                CHECK_INPUT_SCALAR("map2alm_iter", "iter", 7);
+                CHECK_INPUT_INT32("map2alm_iter", "iter", 7);
                 mex_map2alm_iter(outputs, inputs);
                 break;
 
-            case id_map2alm_spin_iter:
-                CHECK_NINOUT("map2alm_spin_iter", 8, 2);
-                CHECK_INPUT_SCALAR("map2alm_spin_iter", "nside", 1);
-                CHECK_INPUT_INT64("map2alm_spin_iter", "nside", 1);
-                CHECK_INPUT_DOUBLE("map2alm_spin_iter", "map1", 2);
-                CHECK_INPUT_DOUBLE("map2alm_spin_iter", "map2", 3);
-                CHECK_INPUT_SCALAR("map2alm_spin_iter", "spin", 4);
-                CHECK_INPUT_INT32("map2alm_spin_iter", "spin", 4);
-                CHECK_INPUT_SCALAR("map2alm_spin_iter", "lmax", 5);
-                CHECK_INPUT_INT32("map2alm_spin_iter", "lmax", 5);
-                CHECK_INPUT_SCALAR("map2alm_spin_iter", "mmax", 6);
-                CHECK_INPUT_INT32("map2alm_spin_iter", "mmax", 6);
-                CHECK_INPUT_DOUBLE("map2alm_spin_iter", "rwghts", 7);
-                CHECK_INPUT_SCALAR("map2alm_spin_iter", "iter", 8);
-                CHECK_INPUT_INT32("map2alm_spin_iter", "iter", 8);
-                mex_map2alm_spin_iter(outputs, inputs);
+            case id_map2alm_pol_iter:
+                CHECK_NINOUT("map2alm_pol_iter", 9, 3);
+                CHECK_INPUT_SCALAR("map2alm_pol_iter", "nside", 1);
+                CHECK_INPUT_INT64("map2alm_pol_iter", "nside", 1);
+                CHECK_INPUT_CHAR("map2alm_pol_iter", "order", 2);
+                CHECK_INPUT_DOUBLE("map2alm_pol_iter", "mapT", 3);
+                CHECK_INPUT_DOUBLE("map2alm_pol_iter", "mapQ", 4);
+                CHECK_INPUT_DOUBLE("map2alm_pol_iter", "mapU", 5);
+                CHECK_INPUT_SCALAR("map2alm_pol_iter", "lmax", 6);
+                CHECK_INPUT_INT32("map2alm_pol_iter", "lmax", 6);
+                CHECK_INPUT_SCALAR("map2alm_pol_iter", "mmax", 7);
+                CHECK_INPUT_INT32("map2alm_pol_iter", "mmax", 7);
+                CHECK_INPUT_DOUBLE("map2alm_pol_iter", "rwghts", 8);
+                CHECK_INPUT_SCALAR("map2alm_pol_iter", "iter", 9);
+                CHECK_INPUT_INT32("map2alm_pol_iter", "iter", 9);
+                mex_map2alm_pol_iter(outputs, inputs);
                 break;
 
             case id_map2alm_polonly_iter:
@@ -423,16 +422,15 @@ public:
                 break;
 
             case id_alm2map:
-                CHECK_NINOUT("alm2map", 6, 3);
+                CHECK_NINOUT("alm2map", 5, 1);
                 CHECK_INPUT_SCALAR("alm2map", "lmax", 1);
                 CHECK_INPUT_INT32("alm2map", "lmax", 1);
                 CHECK_INPUT_SCALAR("alm2map", "mmax", 2);
                 CHECK_INPUT_INT32("alm2map", "mmax", 2);
-                CHECK_INPUT_COMPLEX64("alm2map", "almsT", 3);
-                CHECK_INPUT_COMPLEX64("alm2map", "almsG", 4);
-                CHECK_INPUT_COMPLEX64("alm2map", "almsC", 5);
-                CHECK_INPUT_SCALAR("alm2map", "nside", 6);
-                CHECK_INPUT_INT64("alm2map", "nside", 6);
+                CHECK_INPUT_COMPLEX64("alm2map", "alms", 3);
+                CHECK_INPUT_SCALAR("alm2map", "nside", 4);
+                CHECK_INPUT_INT64("alm2map", "nside", 4);
+                CHECK_INPUT_CHAR("alm2map", "order", 5);
                 mex_alm2map(outputs, inputs);
                 break;
 
@@ -451,19 +449,19 @@ public:
                 mex_alm2map_polonly(outputs, inputs);
                 break;
 
-            case id_alm2map_spin:
-                CHECK_NINOUT("alm2map_spin", 6, 2);
-                CHECK_INPUT_SCALAR("alm2map_spin", "lmax", 1);
-                CHECK_INPUT_INT32("alm2map_spin", "lmax", 1);
-                CHECK_INPUT_SCALAR("alm2map_spin", "mmax", 2);
-                CHECK_INPUT_INT32("alm2map_spin", "mmax", 2);
-                CHECK_INPUT_COMPLEX64("alm2map_spin", "alms1", 3);
-                CHECK_INPUT_COMPLEX64("alm2map_spin", "alms2", 4);
-                CHECK_INPUT_SCALAR("alm2map_spin", "spin", 5);
-                CHECK_INPUT_INT32("alm2map_spin", "spin", 5);
-                CHECK_INPUT_SCALAR("alm2map_spin", "nside", 6);
-                CHECK_INPUT_INT64("alm2map_spin", "nside", 6);
-                mex_alm2map_spin(outputs, inputs);
+            case id_alm2map_pol:
+                CHECK_NINOUT("alm2map_pol", 7, 3);
+                CHECK_INPUT_SCALAR("alm2map_pol", "lmax", 1);
+                CHECK_INPUT_INT32("alm2map_pol", "lmax", 1);
+                CHECK_INPUT_SCALAR("alm2map_pol", "mmax", 2);
+                CHECK_INPUT_INT32("alm2map_pol", "mmax", 2);
+                CHECK_INPUT_COMPLEX64("alm2map_pol", "almsT", 3);
+                CHECK_INPUT_COMPLEX64("alm2map_pol", "almsG", 4);
+                CHECK_INPUT_COMPLEX64("alm2map_pol", "almsC", 5);
+                CHECK_INPUT_SCALAR("alm2map_pol", "nside", 6);
+                CHECK_INPUT_INT64("alm2map_pol", "nside", 6);
+                CHECK_INPUT_CHAR("alm2map_pol", "order", 7);
+                mex_alm2map_pol(outputs, inputs);
                 break;
 
             case id_alm2map_der1:
@@ -695,8 +693,8 @@ private:
 
     DISPATCH_FN(scan_rings_observed);
     DISPATCH_FN(compute_mcm);
-    DISPATCH_FN(map2alm_spin_iter);
-    DISPATCH_FN(alm2map_spin);
+    DISPATCH_FN(map2alm_pol_iter);
+    DISPATCH_FN(alm2map_pol);
     DISPATCH_FN(alm2map_der1);
 
     DISPATCH_FN(rotate_alm_coord);
@@ -775,10 +773,10 @@ healpix nsideorder(const TypedArray<int64_t> ml_nside)
 // a HEALPix object.
 inline
 healpix nsideorder(const TypedArray<int64_t> ml_nside,
-                   const TypedArray<bool> ml_nested)
+                   const CharArray ml_order)
 {
     int64_t nside = ml_nside[0];
-    auto order = ml_nested[0] ? NEST : RING;
+    auto order = string2HealpixScheme(ml_order.toAscii());
     return healpix(nside, order, SET_NSIDE);
 }
 
@@ -844,27 +842,17 @@ template<typename T> void map2alm_spin_iter(
     sharp_cxxjob<T> job;
     job.set_weighted_Healpix_geometry(map1.Nside(), &weight[0]);
     job.set_triangular_alm_info(alm1.Lmax(), alm1.Mmax());
-    job.map2alm_spin(&map1[0], &map2[0], &alm1(0,0), &alm2(0,0), spin, false);
 
-    if (num_iter == 0)
-        return;
-
-    Healpix_Map<T> map1b(map1.Nside(), map1.Scheme(), SET_NSIDE);
-    Healpix_Map<T> map2b(map1.Nside(), map1.Scheme(), SET_NSIDE);
-    for (int iter = 0; iter < num_iter; ++iter) {
-        job.alm2map_spin(&alm1(0,0), &alm2(0,0), &map1b[0], &map2b[0], spin, false);
-        #pragma omp parallel for
-        for (size_t ii = 0; ii < map1.Npix(); ++ii) {
-            map1b[ii] = map1[ii] - map1b[ii];
-            map2b[ii] = map2[ii] - map2b[ii];
-        }
-        job.map2alm_spin(&map1[0], &map2[0], &alm1(0,0), &alm2(0,0), spin, true);
-    }
+    map2alm_spin_iter_sub(job,map1,map2,alm1,alm2,spin,num_iter);
 }
 
 
-void map2alm_spin_iter(sharp_cxxjob<double> &job, Healpix_Map<double> &mapQ, Healpix_Map<double> &mapU, Alm<xcomplex<double> > &almG, Alm<xcomplex<double> > &almC, int spin, int num_iter){
+void map2alm_spin_iter_sub(sharp_cxxjob<double> &job, Healpix_Map<double> &mapQ, Healpix_Map<double> &mapU, Alm<xcomplex<double> > &almG, Alm<xcomplex<double> > &almC, int spin, int num_iter){
     job.map2alm_spin(&mapQ[0],&mapU[0],&almG(0,0),&almC(0,0),spin,false);
+    
+    if (num_iter == 0)
+        return;
+
     for (int iter=1; iter<=num_iter; ++iter){
         Healpix_Map<double> mapQ2(mapQ.Nside(),mapQ.Scheme(),SET_NSIDE),mapU2(mapU.Nside(),mapU.Scheme(),SET_NSIDE);
         
@@ -1172,67 +1160,32 @@ DISPATCH_FN(neighbors) {
 }
 
 DISPATCH_FN(map2alm_iter) {
-    healpix base = nsideorder(inputs[1]);
-    auto [buf_mapT, len_mapT] = bufferlen<double>(inputs[2]);
-    auto [buf_mapQ, len_mapQ] = bufferlen<double>(inputs[3]);
-    auto [buf_mapU, len_mapU] = bufferlen<double>(inputs[4]);
-    auto lmax = scalar<int32_t>(inputs[5]);
-    auto mmax = scalar<int32_t>(inputs[6]);
-    auto [buf_wght, len_wght] = bufferlen<double>(inputs[7]);
-    auto iter = scalar<int32_t>(inputs[8]);
+    healpix base = nsideorder(inputs[1], inputs[2]);
+    auto [buf_map, len_map] = bufferlen<double>(inputs[3]);
+    auto lmax = scalar<int32_t>(inputs[4]);
+    auto mmax = scalar<int32_t>(inputs[5]);
+    auto [buf_wght, len_wght] = bufferlen<double>(inputs[6]);
+    auto iter = scalar<int32_t>(inputs[7]);
 
-    if (len_mapQ != len_mapU) {
-        error("map2alm_iter: mapQ and mapU must have the same length");
-    }
-    if (len_mapQ > 0 && len_mapT != len_mapQ) {
-        error("map2alm_iter: mapT, mapQ, and mapU have mismatched lengths");
-    }
-    auto nalms = Alm_Base::Num_Alms(lmax, mmax);
-    bool do_pol = len_mapQ > 0;
-
-    auto mapT = healmap();
-    auto mapQ = healmap();
-    auto mapU = healmap();
-    auto almsT = healalm();
-    auto almsG = healalm();
-    auto almsC = healalm();
-
-    auto buf_almsT = factory.createBuffer<complex64>(nalms);
-    auto buf_almsG = factory.createBuffer<complex64>(do_pol ? nalms : (size_t)0);
-    auto buf_almsC = factory.createBuffer<complex64>(do_pol ? nalms : (size_t)0);
+    auto map = healmap();
     {
-        arr<complex64> almtmp(buf_almsT.get(), nalms);
-        almsT.Set(almtmp, lmax, mmax);
-        arr<double> maptmp(buf_mapT.get(), len_mapT);
-        mapT.Set(maptmp, base.Scheme());
-    }
-    if (do_pol) {
-        {
-            arr<complex64> almtmp(buf_almsG.get(), nalms);
-            almsG.Set(almtmp, lmax, mmax);
-            arr<double> maptmp(buf_mapQ.get(), len_mapQ);
-            mapQ.Set(maptmp, base.Scheme());
-        }
-        {
-            arr<complex64> almtmp(buf_almsC.get(), nalms);
-            almsC.Set(almtmp, lmax, mmax);
-            arr<double> maptmp(buf_mapU.get(), len_mapU);
-            mapU.Set(maptmp, base.Scheme());
-        }
+        arr<double> tmp(buf_map.get(), len_map);
+        map.Set(tmp, base.Scheme());
     }
 
     arr<double> rwghts(buf_wght.get(), len_wght);
 
-    if (do_pol) {
-        map2alm_pol_iter(mapT, mapQ, mapU,
-                almsT, almsG, almsC, iter, rwghts);
-    } else {
-        map2alm_iter(mapT, almsT, iter, rwghts);
+    auto nalms = Alm_Base::Num_Alms(lmax, mmax);
+    auto alms = healalm();
+    auto buf_alms = factory.createBuffer<complex64>(nalms);
+    {
+        arr<complex64> tmp(buf_alms.get(), nalms);
+        alms.Set(tmp, lmax, mmax);
     }
 
-    outputs[0] = factory.createArrayFromBuffer({nalms}, move(buf_almsT));
-    outputs[1] = factory.createArrayFromBuffer({do_pol ? nalms : (size_t)0}, move(buf_almsG));
-    outputs[2] = factory.createArrayFromBuffer({do_pol ? nalms : (size_t)0}, move(buf_almsC));
+    map2alm_iter(map, alms, iter, rwghts);
+
+    outputs[0] = factory.createArrayFromBuffer({nalms}, move(buf_alms));
 }
 
 
@@ -1277,7 +1230,7 @@ DISPATCH_FN(map2alm_polonly_iter) {
 	job.set_weighted_Healpix_geometry (base.Nside(), &rwghts[0]);
 	job.set_triangular_alm_info (lmax, mmax);
 	
-	map2alm_spin_iter(job, mapQ, mapU, almsG, almsC, 2, iter);
+	map2alm_spin_iter_sub(job, mapQ, mapU, almsG, almsC, 2, iter);
 
     outputs[0] = factory.createArrayFromBuffer({nalms}, move(buf_almsG));
     outputs[1] = factory.createArrayFromBuffer({nalms}, move(buf_almsC));
@@ -1361,15 +1314,14 @@ DISPATCH_FN(map2alm_pure) {
 		else mask[ip]=0.;
 		wapU[ip]=0.;
 	}	
-	map2alm_spin_iter(job,wapQ,wapU,wlmsG,wlmsC,0,iter);
+	map2alm_spin_iter_sub(job,wapQ,wapU,wlmsG,wlmsC,0,iter);
 
 	#pragma omp parallel for
 	for (int ip=0; ip< papQ.Npix(); ip++) {
 		papQ[ip]=mapQ[ip]*wapQ[ip];
 		papU[ip]=mapU[ip]*wapQ[ip];
 	}
-	
-	map2alm_spin_iter(job,papQ,papU,almsG,almsC,2,iter);
+	map2alm_spin_iter_sub(job,papQ,papU,almsG,almsC,2,iter);
 	
 	// Compute spin-1 mask
 	for(int l=0;l<=lmax;l++) //The minus sign is because of the definition of E-modes
@@ -1387,7 +1339,7 @@ DISPATCH_FN(map2alm_pure) {
 	}
 	
 	// Compute SHT, multiply by 2*sqrt((l+1)!(l-2)!/((l-1)!(l+2)!)) and add to alm_out
-	map2alm_spin_iter(job,papQ,papU,plmsG,plmsC,1,iter);
+	map2alm_spin_iter_sub(job,papQ,papU,plmsG,plmsC,1,iter);
 	
 	for(int l=0;l<=lmax;l++) {
 		if(l>1)
@@ -1689,46 +1641,156 @@ DISPATCH_FN(apodize_mask) {
     outputs[0] = factory.createArrayFromBuffer({npix}, move(buf_amap));
 }
 
-DISPATCH_FN(map2alm_spin_iter) {
-    healpix base = nsideorder(inputs[1]);
-    auto [buf_map1, len_map1] = bufferlen<double>(inputs[2]);
-    auto [buf_map2, len_map2] = bufferlen<double>(inputs[3]);
-    auto spin = scalar<int32_t>(inputs[4]);
-    auto lmax = scalar<int32_t>(inputs[5]);
-    auto mmax = scalar<int32_t>(inputs[6]);
-    auto [buf_wght, len_wght] = bufferlen<double>(inputs[7]);
-    auto iter = scalar<int32_t>(inputs[8]);
 
-    if (len_map1 != len_map2) {
-        error("map2alm_spin_iter: map1 and map2 must have the same length");
-    }
-    auto nalms = Alm_Base::Num_Alms(lmax, mmax);
+DISPATCH_FN(map2alm_pol_iter) {
+    healpix base = nsideorder(inputs[1], inputs[2]);
+    auto [buf_mapT, len_mapT] = bufferlen<double>(inputs[3]);
+    auto [buf_mapQ, len_mapQ] = bufferlen<double>(inputs[4]);
+    auto [buf_mapU, len_mapU] = bufferlen<double>(inputs[5]);
+    auto lmax = scalar<int32_t>(inputs[6]);
+    auto mmax = scalar<int32_t>(inputs[7]);
+    auto [buf_wght, len_wght] = bufferlen<double>(inputs[8]);
+    auto iter = scalar<int32_t>(inputs[9]);
 
-    auto map1 = healmap();
-    auto map2 = healmap();
-    auto alms1 = healalm();
-    auto alms2 = healalm();
-
-    auto buf_alms1 = factory.createBuffer<complex64>(nalms);
-    auto buf_alms2 = factory.createBuffer<complex64>(nalms);
+    auto mapT = healmap();
+    auto mapQ = healmap();
+    auto mapU = healmap();
     {
-        arr<complex64> almtmp(buf_alms1.get(), nalms);
-        alms1.Set(almtmp, lmax, mmax);
-        arr<double> maptmp(buf_map1.get(), len_map1);
-        map1.Set(maptmp, base.Scheme());
+        arr<double> tmp(buf_mapT.get(), len_mapT);
+        mapT.Set(tmp, base.Scheme());
     }
     {
-        arr<complex64> almtmp(buf_alms2.get(), nalms);
-        alms2.Set(almtmp, lmax, mmax);
-        arr<double> maptmp(buf_map2.get(), len_map2);
-        map2.Set(maptmp, base.Scheme());
+        arr<double> tmp(buf_mapQ.get(), len_mapQ);
+        mapQ.Set(tmp, base.Scheme());
+    }
+    {
+        arr<double> tmp(buf_mapU.get(), len_mapU);
+        mapU.Set(tmp, base.Scheme());
     }
 
     arr<double> rwghts(buf_wght.get(), len_wght);
-    map2alm_spin_iter(map1, map2, alms1, alms2, spin, iter, rwghts);
 
-    outputs[0] = factory.createArrayFromBuffer({nalms}, move(buf_alms1));
-    outputs[1] = factory.createArrayFromBuffer({nalms}, move(buf_alms2));
+    auto nalms = Alm_Base::Num_Alms(lmax, mmax);
+    auto almsT = healalm();
+    auto almsG = healalm();
+    auto almsC = healalm();
+
+    auto buf_almsT = factory.createBuffer<complex64>(nalms);
+    auto buf_almsG = factory.createBuffer<complex64>(nalms);
+    auto buf_almsC = factory.createBuffer<complex64>(nalms);
+    {
+        arr<complex64> tmp(buf_almsT.get(), nalms);
+        almsT.Set(tmp, lmax, mmax);
+    }
+    {
+        arr<complex64> tmp(buf_almsG.get(), nalms);
+        almsG.Set(tmp, lmax, mmax);
+    }
+    {
+        arr<complex64> tmp(buf_almsC.get(), nalms);
+        almsC.Set(tmp, lmax, mmax);
+    }
+
+    map2alm_pol_iter(mapT, mapQ, mapU,
+            almsT, almsG, almsC, iter, rwghts);
+
+    outputs[0] = factory.createArrayFromBuffer({nalms}, move(buf_almsT));
+    outputs[1] = factory.createArrayFromBuffer({nalms}, move(buf_almsG));
+    outputs[2] = factory.createArrayFromBuffer({nalms}, move(buf_almsC));
+}
+
+
+// DISPATCH_FN(map2alm_spin_iter) {
+//     healpix base = nsideorder(inputs[1]);
+//     auto [buf_map1, len_map1] = bufferlen<double>(inputs[2]);
+//     auto [buf_map2, len_map2] = bufferlen<double>(inputs[3]);
+//     auto spin = scalar<int32_t>(inputs[4]);
+//     auto lmax = scalar<int32_t>(inputs[5]);
+//     auto mmax = scalar<int32_t>(inputs[6]);
+//     auto [buf_wght, len_wght] = bufferlen<double>(inputs[7]);
+//     auto iter = scalar<int32_t>(inputs[8]);
+
+//     if (len_map1 != len_map2) {
+//         error("map2alm_spin_iter: map1 and map2 must have the same length");
+//     }
+//     auto nalms = Alm_Base::Num_Alms(lmax, mmax);
+
+//     auto map1 = healmap();
+//     auto map2 = healmap();
+//     auto alms1 = healalm();
+//     auto alms2 = healalm();
+
+//     auto buf_alms1 = factory.createBuffer<complex64>(nalms);
+//     auto buf_alms2 = factory.createBuffer<complex64>(nalms);
+//     {
+//         arr<complex64> almtmp(buf_alms1.get(), nalms);
+//         alms1.Set(almtmp, lmax, mmax);
+//         arr<double> maptmp(buf_map1.get(), len_map1);
+//         map1.Set(maptmp, base.Scheme());
+//     }
+//     {
+//         arr<complex64> almtmp(buf_alms2.get(), nalms);
+//         alms2.Set(almtmp, lmax, mmax);
+//         arr<double> maptmp(buf_map2.get(), len_map2);
+//         map2.Set(maptmp, base.Scheme());
+//     }
+
+//     arr<double> rwghts(buf_wght.get(), len_wght);
+//     map2alm_spin_iter(map1, map2, alms1, alms2, spin, iter, rwghts);
+
+//     outputs[0] = factory.createArrayFromBuffer({nalms}, move(buf_alms1));
+//     outputs[1] = factory.createArrayFromBuffer({nalms}, move(buf_alms2));
+// }
+
+DISPATCH_FN(alm2map_pol) {
+    auto lmax = scalar<int32_t>(inputs[1]);
+    auto mmax = scalar<int32_t>(inputs[2]);
+    auto [buf_almsT, len_almsT] = bufferlen<complex64>(inputs[3]);
+    auto [buf_almsG, len_almsG] = bufferlen<complex64>(inputs[4]);
+    auto [buf_almsC, len_almsC] = bufferlen<complex64>(inputs[5]);
+    healpix base = nsideorder(inputs[6], inputs[7]);
+
+    auto almsT = healalm();
+    auto almsG = healalm();
+    auto almsC = healalm();
+    {
+        arr<complex64> tmp(buf_almsT.get(), len_almsT);
+        almsT.Set(tmp, lmax, mmax);
+    }
+    {
+        arr<complex64> tmp(buf_almsG.get(), len_almsG);
+        almsG.Set(tmp, lmax, mmax);
+    }
+    {
+        arr<complex64> tmp(buf_almsC.get(), len_almsC);
+        almsC.Set(tmp, lmax, mmax);
+    }
+
+    auto npix = 12 * base.Nside() * base.Nside();
+    auto mapT = healmap();
+    auto mapQ = healmap();
+    auto mapU = healmap();
+    auto buf_mapT = factory.createBuffer<double>(npix);
+    auto buf_mapQ = factory.createBuffer<double>(npix);
+    auto buf_mapU = factory.createBuffer<double>(npix);
+    {
+        arr<double> tmp(buf_mapT.get(), npix);
+        mapT.Set(tmp, base.Scheme());
+    }
+    {
+        arr<double> tmp(buf_mapQ.get(), npix);
+        mapQ.Set(tmp, base.Scheme());
+    }
+    {
+        arr<double> tmp(buf_mapU.get(), npix);
+        mapU.Set(tmp, base.Scheme());
+    }
+
+    alm2map_pol(almsT, almsG, almsC, mapT, mapQ, mapU);
+
+    outputs[0] = factory.createArrayFromBuffer({npix}, move(buf_mapT));
+    outputs[1] = factory.createArrayFromBuffer({npix}, move(buf_mapQ));
+    outputs[2] = factory.createArrayFromBuffer({npix}, move(buf_mapU));
 }
 
 DISPATCH_FN(alm2map_polonly) {
@@ -1777,104 +1839,71 @@ DISPATCH_FN(alm2map_polonly) {
     outputs[1] = factory.createArrayFromBuffer({npix}, move(buf_mapU));
 }
 
+
 DISPATCH_FN(alm2map) {
     auto lmax = scalar<int32_t>(inputs[1]);
     auto mmax = scalar<int32_t>(inputs[2]);
-    auto [buf_almsT, len_almsT] = bufferlen<complex64>(inputs[3]);
-    auto [buf_almsG, len_almsG] = bufferlen<complex64>(inputs[4]);
-    auto [buf_almsC, len_almsC] = bufferlen<complex64>(inputs[5]);
-    healpix base = nsideorder(inputs[6]);
+    auto [buf_alms, len_alms] = bufferlen<complex64>(inputs[3]);
+    healpix base = nsideorder(inputs[4], inputs[5]);
 
-    if (len_almsG != len_almsC) {
-        error("alm2map: almsG and almsC must have the same size");
-    }
-    if (len_almsG > 0 && len_almsT != len_almsT) {
-        error("alm2map: almsT, almsG, and almsC have mismatched sizes");
-    }
-    auto npix = (size_t)12 * base.Nside() * base.Nside();
-    bool do_pol = len_almsG > 0;
-
-    auto almsT = healalm();
-    auto almsG = healalm();
-    auto almsC = healalm();
-    auto mapT = healmap();
-    auto mapQ = healmap();
-    auto mapU = healmap();
-
-    auto buf_mapT = factory.createBuffer<double>(npix);
-    auto buf_mapQ = factory.createBuffer<double>(do_pol ? npix : (size_t)0);
-    auto buf_mapU = factory.createBuffer<double>(do_pol ? npix : (size_t)0);
-
+    auto alms = healalm();
     {
-        arr<complex64> almtmp(buf_almsT.get(), len_almsT);
-        almsT.Set(almtmp, lmax, mmax);
-        arr<double> maptmp(buf_mapT.get(), npix);
-        mapT.Set(maptmp, base.Scheme());
-    }
-    if (do_pol) {
-        {
-            arr<complex64> almtmp(buf_almsG.get(), len_almsG);
-            almsG.Set(almtmp, lmax, mmax);
-            arr<double> maptmp(buf_mapQ.get(), npix);
-            mapQ.Set(maptmp, base.Scheme());
-        }
-        {
-            arr<complex64> almtmp(buf_almsC.get(), len_almsC);
-            almsC.Set(almtmp, lmax, mmax);
-            arr<double> maptmp(buf_mapU.get(), npix);
-            mapU.Set(maptmp, base.Scheme());
-        }
+        arr<complex64> tmp(buf_alms.get(), len_alms);
+        alms.Set(tmp, lmax, mmax);
     }
 
-    if (do_pol) {
-        alm2map_pol(almsT, almsG, almsC, mapT, mapQ, mapU);
-    } else {
-        alm2map(almsT, mapT);
+    auto npix = 12 * base.Nside() * base.Nside();
+    auto map = healmap();
+    auto buf_map = factory.createBuffer<double>(npix);
+    {
+        arr<double> tmp(buf_map.get(), npix);
+        map.Set(tmp, base.Scheme());
     }
 
-    outputs[0] = factory.createArrayFromBuffer({npix}, move(buf_mapT));
-    outputs[1] = factory.createArrayFromBuffer({do_pol ? npix : (size_t)0}, move(buf_mapQ));
-    outputs[2] = factory.createArrayFromBuffer({do_pol ? npix : (size_t)0}, move(buf_mapU));
+    alm2map(alms, map);
+
+    outputs[0] = factory.createArrayFromBuffer({npix}, move(buf_map));
 }
 
-DISPATCH_FN(alm2map_spin) {
-    auto lmax = scalar<int32_t>(inputs[1]);
-    auto mmax = scalar<int32_t>(inputs[2]);
-    auto [buf_alms1, len_alms1] = bufferlen<complex64>(inputs[3]);
-    auto [buf_alms2, len_alms2] = bufferlen<complex64>(inputs[4]);
-    auto spin = scalar<int32_t>(inputs[5]);
-    healpix base = nsideorder(inputs[6]);
 
-    if (len_alms1 != len_alms2) {
-        error("alm2map_spin: almsG and almsC must have the same size");
-    }
-    auto npix = (size_t)12 * base.Nside() * base.Nside();
+// DISPATCH_FN(alm2map_spin) {
+//     auto lmax = scalar<int32_t>(inputs[1]);
+//     auto mmax = scalar<int32_t>(inputs[2]);
+//     auto [buf_alms1, len_alms1] = bufferlen<complex64>(inputs[3]);
+//     auto [buf_alms2, len_alms2] = bufferlen<complex64>(inputs[4]);
+//     auto spin = scalar<int32_t>(inputs[5]);
+//     healpix base = nsideorder(inputs[6]);
 
-    auto alms1 = healalm();
-    auto alms2 = healalm();
-    auto map1 = healmap();
-    auto map2 = healmap();
+//     if (len_alms1 != len_alms2) {
+//         error("alm2map_spin: almsG and almsC must have the same size");
+//     }
+//     auto npix = (size_t)12 * base.Nside() * base.Nside();
 
-    auto buf_map1 = factory.createBuffer<double>(npix);
-    auto buf_map2 = factory.createBuffer<double>(npix);
-    {
-        arr<complex64> almtmp(buf_alms1.get(), len_alms1);
-        alms1.Set(almtmp, lmax, mmax);
-        arr<double> maptmp(buf_map1.get(), npix);
-        map1.Set(maptmp, base.Scheme());
-    }
-    {
-        arr<complex64> almtmp(buf_alms2.get(), len_alms2);
-        alms2.Set(almtmp, lmax, mmax);
-        arr<double> maptmp(buf_map2.get(), npix);
-        map2.Set(maptmp, base.Scheme());
-    }
+//     auto alms1 = healalm();
+//     auto alms2 = healalm();
+//     auto map1 = healmap();
+//     auto map2 = healmap();
 
-    alm2map_spin(alms1, alms2, map1, map2, spin, false);
+//     auto buf_map1 = factory.createBuffer<double>(npix);
+//     auto buf_map2 = factory.createBuffer<double>(npix);
+//     {
+//         arr<complex64> almtmp(buf_alms1.get(), len_alms1);
+//         alms1.Set(almtmp, lmax, mmax);
+//         arr<double> maptmp(buf_map1.get(), npix);
+//         map1.Set(maptmp, base.Scheme());
+//     }
+//     {
+//         arr<complex64> almtmp(buf_alms2.get(), len_alms2);
+//         alms2.Set(almtmp, lmax, mmax);
+//         arr<double> maptmp(buf_map2.get(), npix);
+//         map2.Set(maptmp, base.Scheme());
+//     }
 
-    outputs[0] = factory.createArrayFromBuffer({npix}, move(buf_map1));
-    outputs[1] = factory.createArrayFromBuffer({npix}, move(buf_map2));
-}
+//     alm2map_spin(alms1, alms2, map1, map2, spin, false);
+
+//     outputs[0] = factory.createArrayFromBuffer({npix}, move(buf_map1));
+//     outputs[1] = factory.createArrayFromBuffer({npix}, move(buf_map2));
+// }
 
 DISPATCH_FN(alm2map_der1) {
     auto lmax = scalar<int32_t>(inputs[1]);
@@ -2014,7 +2043,7 @@ DISPATCH_FN(smoothing_pol) {
 	job.set_weighted_Healpix_geometry (base.Nside(), &rwghts[0]);
 	job.set_triangular_alm_info (lmax, mmax);
 
-	map2alm_spin_iter(job,mapQ,mapU,almsG,almsC,2,iter);
+	map2alm_spin_iter_sub(job,mapQ,mapU,almsG,almsC,2,iter);
 	
 	double fle,flb;
 	

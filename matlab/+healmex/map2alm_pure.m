@@ -40,7 +40,7 @@ function alms = map2alm_pure(map, wmap, order, lmax, mmax, nside, niter, pureE)
   end
 
   if ~exist('nside', 'var') || isempty(nside)
-    nside = npix2nside(size(map, 1));
+    nside = healmex.npix2nside(size(map, 1));
   end
 
   if ~exist('lmax', 'var') || isempty(lmax)
@@ -59,12 +59,12 @@ function alms = map2alm_pure(map, wmap, order, lmax, mmax, nside, niter, pureE)
   rwghts = ones(4 * nside - 1, 1);
 
   if size(map, 2) == 1
-    alms = hpx_map2alm(nside, order, map.*wmap, ...
+    alms = healmex.hpx_map2alm(nside, order, map.*wmap, ...
         lmax, mmax, rwghts, niter);
   elseif size(map, 2) == 3
-    alms(:,1) = hpx_map2alm(nside, order, map(:,1).*wmap(:,1), ...
+    alms(:,1) = healmex.hpx_map2alm(nside, order, map(:,1).*wmap(:,1), ...
         lmax, mmax, rwghts, niter);
-    [alms(:,2),alms(:,3)] = hpx_map2alm_pure(...
+    [alms(:,2),alms(:,3)] = healmex.hpx_map2alm_pure(...
         nside, order, map(:,2), map(:,3), wmap(:,2), ...
         lmax, mmax, rwghts, niter, pureE);
   else

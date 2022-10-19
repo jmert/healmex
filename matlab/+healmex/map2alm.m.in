@@ -36,7 +36,7 @@ function alms = map2alm(map, order, lmax, mmax, nside, niter)
   end
 
   if ~exist('nside', 'var') || isempty(nside)
-    nside = @CLASSPREFIX@npix2nside(size(map, 1));
+    nside = @PACKAGEPREFIX@npix2nside(size(map, 1));
   end
 
   if ~exist('lmax', 'var') || isempty(lmax)
@@ -52,10 +52,10 @@ function alms = map2alm(map, order, lmax, mmax, nside, niter)
   end
 
   if size(map, 2) == 1
-    alms = @CLASSPREFIX@hpx_map2alm(nside, order, map, ...
+    alms = @PACKAGEPREFIX@hpx_map2alm(nside, order, map, ...
         lmax, mmax, rwghts, niter);
   elseif size(map, 2) == 3
-    [alms(:,1),alms(:,2),alms(:,3)] = @CLASSPREFIX@hpx_map2alm_pol(...
+    [alms(:,1),alms(:,2),alms(:,3)] = @PACKAGEPREFIX@hpx_map2alm_pol(...
         nside, order, map(:,1), map(:,2), map(:,3), ...
         lmax, mmax, rwghts, niter);
   else
