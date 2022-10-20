@@ -418,6 +418,7 @@ public:
                 CHECK_INPUT_DOUBLE("map2alm_pure", "rwghts", 8);
                 CHECK_INPUT_SCALAR("map2alm_pure", "iter", 9);
                 CHECK_INPUT_INT32("map2alm_pure", "iter", 9);
+                CHECK_INPUT_BOOL("map2alm_pure", "pureE", 10);
                 mex_map2alm_pure(outputs, inputs);
                 break;
 
@@ -1351,7 +1352,7 @@ DISPATCH_FN(map2alm_pure) {
 	#pragma omp parallel for
 	for (int m=0; m<=mmax; m++) {
 		for (int l=m; l<=lmax; l++) {
-			if (pureE==true) almsG(l,m)+=plmsG(l,m)*f_l[l];
+			// if (pureE==true) almsG(l,m)+=plmsG(l,m)*f_l[l];
 			almsC(l,m)+=plmsC(l,m)*f_l[l];
 		}
 	}
@@ -1388,7 +1389,7 @@ DISPATCH_FN(map2alm_pure) {
 	#pragma omp parallel for
 	for (int m=0; m<=mmax; m++) {
 		for (int l=m; l<=lmax; l++) {
-			if (pureE==true) almsG(l,m)+=plmsG(l,m)*f_l[l];
+			// if (pureE==true) almsG(l,m)+=plmsG(l,m)*f_l[l];
 			almsC(l,m)+=plmsC(l,m)*f_l[l];
 		}
 	}

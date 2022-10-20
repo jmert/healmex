@@ -3,7 +3,7 @@ function [almsT,almsG,almsC] = hpx_map2alm_pol(nside, order, mapT, mapQ, mapU, l
 %
 % Computes the spherical harmonic transform of map and returns the harmonic
 % coefficients alms.
-
+keyboard
   [almsT,almsG,almsC] = libhealmex(int64(54), ...
       int64(nside), char(order), double(mapT), double(mapQ), double(mapU), ...
       int32(lmax), int32(mmax), double(rwghts), int32(iter));
