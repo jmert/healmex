@@ -1,5 +1,5 @@
 function map = alm2map(alms, nside, order, lmax, mmax)
-% map = alm2map(alms, nside, order, lmax, mmax)
+% map = alm2map(alms, nside, order, lmax, mmax, spin)
 %
 % Synthesizes map(s) from the provided alms at Nside = nside and for the
 % pixelization ordering order.
@@ -39,17 +39,19 @@ function map = alm2map(alms, nside, order, lmax, mmax)
   if ~exist('mmax', 'var')
     mmax = [];
   end
+  if ~exist('spin', 'var')
+    spin = 2;
+  end
 
   [lmax, mmax] = @PACKAGEPREFIX@alm_getlmmax(alms, lmax, mmax);
 
   if size(alms, 2) == 1
-    map = @PACKAGEPREFIX@hpx_alm2map(lmax, mmax, alms, nside, order);
+    map = libhealmex(int64(55), int32(lmax), int32(mmax), complex(double(alms)), int64(nside), char(order));
   elseif size(alms, 2) == 2
-    [map(:,1),map(:,2)] = @PACKAGEPREFIX@hpx_alm2map_polonly(...
-        lmax, mmax, alms(:,1), alms(:,2), nside, order);
+    [map(:,1),map(:,2)] = libhealmex(int64(56), int32(lmax), int32(mmax), complex(double(alms(:,1))), complex(double(alms(:,2))), int32(spin), int64(nside), char(order));
   elseif size(alms, 2) == 3
-    [map(:,1),map(:,2),map(:,3)] = @PACKAGEPREFIX@hpx_alm2map_pol(...
-        lmax, mmax, alms(:,1), alms(:,2), alms(:,3), nside, order);
+    map(:,1) = libhealmex(int64(55), int32(lmax), int32(mmax), complex(double(alms)), int64(nside), char(order));
+    [map(:,2),map(:,3)] = libhealmex(int64(56), int32(lmax), int32(mmax), complex(double(alms(:,2))), complex(double(alms(:,3))), int32(spin), int64(nside), char(order));
   else
     error('alms: Expected size 1, 2 or 3 in second dimension, got %d', ...
         size(alms, 2));

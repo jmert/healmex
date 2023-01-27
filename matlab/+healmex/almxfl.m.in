@@ -19,8 +19,8 @@ function alms = almxfl(alms, fl, opt)
 %   alms    Modified alms.
 
   arguments
-    alms     (:,:) {mustBeNumeric}
-    fl       (:,1) {mustBeNumeric}
+    alms
+    fl
     opt.lmax       {mustBeNumeric,mustBeScalarOrEmpty} = []
     opt.mmax       {mustBeNumeric,mustBeScalarOrEmpty} = []
   end
