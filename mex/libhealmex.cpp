@@ -11,9 +11,9 @@
 
 #include <healpix_map.h>
 #include <alm.h>
-#include <sharp_almhelpers.h>
-#include <sharp_geomhelpers.h>
-#include <sharp_cxx.h>
+#include <libsharp/sharp_almhelpers.h>
+#include <libsharp/sharp_geomhelpers.h>
+#include <libsharp/sharp_cxx.h>
 #include <alm_healpix_tools.h>
 #include <alm_powspec_tools.h>
 #include <error_handling.h>
