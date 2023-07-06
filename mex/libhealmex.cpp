@@ -1201,7 +1201,7 @@ DISPATCH_FN(alm2cl) {
     for (int ll = 0; ll <= lmax; ++ll) {
         powspec[ll] = alms1(ll,0).real() * alms2(ll,0).real();
         int endm = ll < mmax ? ll : mmax;
-        for (int mm = 0; mm <= endm; ++mm) {
+        for (int mm = 1; mm <= endm; ++mm) {
             powspec[ll] += 2 * (alms1(ll,mm).real() * alms2(ll,mm).real()
                               + alms1(ll,mm).imag() * alms2(ll,mm).imag());
         }
