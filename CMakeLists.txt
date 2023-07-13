@@ -27,12 +27,12 @@ endif()
 #
 # Note that *_VERSION, *_DATE, and *_MD5HASH must be updated in tandem with
 # each release update.
-set(HEALPIX_VERSION 3.60)
-set(HEALPIX_DATE 2019Dec18)
-set(HEALPIX_MD5HASH 9b51b2fc919f4e70076d296826eebee0)
+set(HEALPIX_VERSION 3.82)
+set(HEALPIX_DATE 2022Jul28)
+set(HEALPIX_MD5HASH f71ffbccd3009f5e602fb48b4fa134d5)
 set(HEALPIX_FILEURL Healpix_${HEALPIX_VERSION}/Healpix_${HEALPIX_VERSION}_${HEALPIX_DATE}.tar.gz)
 set(HEALPIX_PKG healpix-${HEALPIX_VERSION})
-set(HEALPIX_BASEURL https://managedway.dl.sourceforge.net/project/healpix/)
+set(HEALPIX_BASEURL https://downloads.sourceforge.net/project/healpix/)
 
 # Before v3.12, ignored default library search paths in pkg_search_module.
 # (see https://gitlab.kitware.com/cmake/cmake/-/merge_requests/2027)

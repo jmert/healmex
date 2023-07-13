@@ -33,6 +33,7 @@ set(SOURCES libhealmex.cpp)
 matlab_add_mex(NAME libhealmex SHARED
     SRC ${SOURCES}
     R2018a
+    NO_IMPLICIT_LINK_TO_MATLAB_LIBRARIES
 )
 set_target_properties(libhealmex PROPERTIES
     CXX_STANDARD 17
@@ -40,7 +41,10 @@ set_target_properties(libhealmex PROPERTIES
 target_link_libraries(libhealmex
     OpenMP::OpenMP_CXX
     PkgConfig::HEALPIX_CXX
-    PkgConfig::LIBSHARP)
+    PkgConfig::LIBSHARP
+    ${Matlab_MEX_LIBRARY}
+    ${Matlab_MX_LIBRARY}
+    ${Matlab_DATAARRAY_LIBRARY})
 
 install(TARGETS libhealmex DESTINATION matlab)
 
