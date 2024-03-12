@@ -98,6 +98,7 @@ enum libhealpix_mex_calls {
     id_rotate_alm_coord = 65,
     id_rotate_alm_euler = 66,
     id_rotate_alm_matrix= 67,
+    id_apodize_mask     = 68,
 };
 
 class MexFunction : public matlab::mex::Function {
@@ -468,6 +469,17 @@ public:
                 CHECK_INPUT_COMPLEX64("rotate_alm_matrix", "almsG", 5);
                 CHECK_INPUT_COMPLEX64("rotate_alm_matrix", "almsC", 6);
                 mex_rotate_alm_matrix(outputs, inputs);
+                break;
+
+            case id_apodize_mask:
+                CHECK_NINOUT("apodize_mask", 4, 1);
+                CHECK_INPUT_SCALAR("apodize_mask", "nside", 1);
+                CHECK_INPUT_INT64("apodize_mask", "nside", 1);
+                CHECK_INPUT_CHAR("apodize_mask", "order", 2);
+                CHECK_INPUT_DOUBLE("apodize_mask", "map", 3);
+                CHECK_INPUT_SCALAR("apodize_mask", "radius", 4);
+                CHECK_INPUT_DOUBLE("apodize_mask", "radius", 4);
+                mex_apodize_mask(outputs, inputs);
                 break;
 
             default:
@@ -1406,4 +1418,139 @@ DISPATCH_FN(rotate_alm_matrix) {
     outputs[0] = factory.createArrayFromBuffer({len_almsT}, move(buf_almsT));
     outputs[1] = factory.createArrayFromBuffer({len_almsG}, move(buf_almsG));
     outputs[2] = factory.createArrayFromBuffer({len_almsC}, move(buf_almsC));
+}
+
+void apodize(const Healpix_Map<double> & distmap, Healpix_Map<double> & mask, double radius, bool pixbool,bool inside){
+	double omega = M_PI/radius;
+	int    sign_coef ;
+	
+	if (pixbool) sign_coef = 1;  // Transition from 0 to 1 if pixbool is 1 
+	else         sign_coef = -1; // Transition from 1 to 0 if pixbool is 0
+	if (inside) sign_coef = - sign_coef; // invert the transition to apodize inside
+	double oradius =  radius;//60/60*degr2rad; 
+	#pragma omp parallel for  
+	for(int i = 0; i<distmap.Npix(); i++)
+	{
+		if ((distmap[i] >= oradius) || (approx(distmap[i],Healpix_undef))) mask[i] = 1-pixbool;
+		//if (approx(distmap[i],Healpix_undef)) mask[i] = 1-pixbool;
+		else if ((inside) && (distmap[i]>=radius)) mask[i] = pixbool;
+		else if ((!inside) && (distmap[i]>=radius)) mask[i] = 1-pixbool;
+		else if (distmap[i] ==0) mask[i] = pixbool;
+		else{
+			mask[i] = 0.5 + sign_coef*(0.5* cos(omega * distmap[i]));
+		}
+	}
+}
+
+// Distance map : starting value is 2*pi outside of the mask and 0 inside
+// To apodize inside : for each point inside the mask, get all pixels inside a disk of radius "radius"
+// If the disk cross the border of the mask, update the distance value of all pixel inside of the mask 
+// which are close to the border with the minimum distance value to the border 
+// Credits: Marc Betoule, Xpure
+void computeDistance_in(const Healpix_Map<double> & mask, Healpix_Map<double> & distmap, double radius,bool pixbool){
+  vector<int> listpix;
+  double mind;
+  for(int i = 0; i<mask.Npix();i++){
+    // for each point in the mask
+    if(mask[i] == pixbool){
+      pointing pixcenter = mask.pix2ang(i);
+      // get a disk
+      mask.query_disc(pixcenter ,radius, listpix);
+      // maximum value of the distance map is radius
+      mind = 2*M_PI;//radius;
+      for(vector<int>::iterator p = listpix.begin(); p!=listpix.end(); p++){
+		double v = distmap[*p];
+		// for each point of the disk outside of the mask
+		if(v==2*M_PI){
+			pointing p2 = mask.pix2ang(*p);
+		    // get the distance
+			double da = angdist(pixcenter,p2);
+		    // get the minimum distance
+		    if (da<mind) mind = da;
+		}
+      }
+      // update the distance value if a minimum is found
+      //      distmap[i] = mind==radius?0:mind;
+      distmap[i] = mind>radius?0:mind;
+    }
+  }
+}
+
+
+// Distance map : starting value is 2*pi outside of the mask and 0 inside
+// To apodize outside : for each point inside the mask, get all pixels inside a disk of radius "radius"
+// If the disk cross the border of the mask, update the distance value of all pixel outside of the mask 
+// which are close to the border with the minimum distance value to the border 
+void computeDistance_out(const Healpix_Map<double> & mask, Healpix_Map<double> & distmap, double radius,bool pixbool){
+  vector<int> listpix;
+  for(int i = 0; i<mask.Npix();i++){
+    // for each point in the mask
+    if(mask[i] == pixbool){
+      pointing pixcenter = mask.pix2ang(i);
+      // get a disk
+      mask.query_disc(pixcenter ,radius, listpix);
+      for(vector<int>::iterator p = listpix.begin(); p!=listpix.end(); p++){
+	double v = distmap[*p];
+	// for each point of the disk outside of the mask
+      	if(v != 0){
+      	  pointing p2 = mask.pix2ang(*p);
+	  // get the distance
+      	  double da = angdist(pixcenter,p2);
+	  // get the minimum distance
+      	  distmap[*p] = v<da?v:da; 
+	}
+      }
+    }
+  }
+}
+
+DISPATCH_FN(apodize_mask) {
+    healpix base = nsideorder(inputs[1], inputs[2]);
+    auto [buf_map, len_map] = bufferlen<double>(inputs[3]);
+    TypedArray<double> radius_ = inputs[4];
+	double radius=radius_[0]*M_PI/180;
+
+    auto npix = 12 * base.Nside() * base.Nside();
+
+    auto map = healmap();
+	auto amap = healmap();
+    auto buf_amap = factory.createBuffer<double>(npix);
+    auto distmap = healmap();
+    {
+        arr<double> tmp(buf_map.get(), len_map);
+        map.Set(tmp, base.Scheme());
+		distmap.SetNside(base.Nside(),base.Scheme());
+    }
+    {
+        arr<double> tmp(buf_amap.get(), npix);
+        amap.Set(tmp, base.Scheme());
+    }
+	distmap.fill(2*M_PI);
+	
+	bool pixbool  = 0;
+	
+	#pragma omp parallel for
+	for(int i = 0; i<map.Npix(); i++){
+		if(map[i] == pixbool) distmap[i] = 0;}
+	
+	computeDistance_out(map, distmap, radius, pixbool);
+	
+	// check that the radius of the input distance map is compatible
+    double min, max;
+    distmap.minmax(min,max);
+    double pixsize = sqrt(M_PI/(3*distmap.Nside()*distmap.Nside()));
+    if(max < radius-pixsize){
+      cout << "radius too large for the input dist map\n";
+      exit(-1);
+    }
+	
+    // call the right function to apodize
+    apodize(distmap, amap, radius, pixbool, false);
+	
+	#pragma omp for schedule(dynamic)
+	for(int ip=0;ip<npix;ip++) {
+		amap[ip]=amap[ip];
+	}
+
+    outputs[0] = factory.createArrayFromBuffer({npix}, move(buf_amap));
 }
