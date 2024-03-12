@@ -521,6 +521,8 @@ private:
     DISPATCH_FN(rotate_alm_euler);
     DISPATCH_FN(rotate_alm_matrix);
 
+    DISPATCH_FN(apodize_mask);
+
     #undef DISPATCH_FN
 
     /*
@@ -1421,11 +1423,11 @@ DISPATCH_FN(rotate_alm_matrix) {
 }
 
 inline double angdist(pointing p1, pointing p2){
-  /*double gamma = p2.phi - p1.phi; 
-    return acos(cos(p1.theta)*cos(p2.theta) + sin(p1.theta)*sin(p2.theta)*cos(gamma));*/
-  vec3 v1 = p1.to_vec3();
-  vec3 v2 = p2.to_vec3();
-  return acos(dotprod(v1,v2));
+    /*double gamma = p2.phi - p1.phi; 
+      return acos(cos(p1.theta)*cos(p2.theta) + sin(p1.theta)*sin(p2.theta)*cos(gamma));*/
+    vec3 v1 = p1.to_vec3();
+    vec3 v2 = p2.to_vec3();
+    return acos(dotprod(v1,v2));
 }
 
 void apodize(const Healpix_Map<double> & distmap, Healpix_Map<double> & mask, double radius, bool pixbool,bool inside){
