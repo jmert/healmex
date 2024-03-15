@@ -475,7 +475,8 @@ public:
                 CHECK_NINOUT("apodize_mask", 4, 1);
                 CHECK_INPUT_SCALAR("apodize_mask", "nside", 1);
                 CHECK_INPUT_INT64("apodize_mask", "nside", 1);
-                CHECK_INPUT_CHAR("apodize_mask", "order", 2);
+                CHECK_INPUT_SCALAR("apodize_mask", "nest", 2);
+                CHECK_INPUT_BOOL("apodize_mask", "nest", 2);
                 CHECK_INPUT_DOUBLE("apodize_mask", "map", 3);
                 CHECK_INPUT_SCALAR("apodize_mask", "radius", 4);
                 CHECK_INPUT_DOUBLE("apodize_mask", "radius", 4);
@@ -1514,8 +1515,8 @@ void computeDistance_out(const Healpix_Map<double> & mask, Healpix_Map<double> &
 DISPATCH_FN(apodize_mask) {
     healpix base = nsideorder(inputs[1], inputs[2]);
     auto [buf_map, len_map] = bufferlen<double>(inputs[3]);
-    TypedArray<double> radius_ = inputs[4];
-	double radius=radius_[0]*M_PI/180;
+    auto radius_ = scalar<double>(inputs[4]);
+	double radius = radius_*M_PI/180;
 
     auto npix = (size_t)12 * base.Nside() * base.Nside();
 
@@ -1523,6 +1524,7 @@ DISPATCH_FN(apodize_mask) {
 	auto amap = healmap();
     auto buf_amap = factory.createBuffer<double>(npix);
     auto distmap = healmap();
+
     {
         arr<double> tmp(buf_map.get(), len_map);
         map.Set(tmp, base.Scheme());
@@ -1538,7 +1540,8 @@ DISPATCH_FN(apodize_mask) {
 	
 	#pragma omp parallel for
 	for(int i = 0; i<map.Npix(); i++){
-		if(map[i] == pixbool) distmap[i] = 0;}
+		if(map[i] == pixbool) distmap[i] = 0;
+    }
 	
 	computeDistance_out(map, distmap, radius, pixbool);
 	
@@ -1550,7 +1553,7 @@ DISPATCH_FN(apodize_mask) {
       cout << "radius too large for the input dist map\n";
       exit(-1);
     }
-	
+
     // call the right function to apodize
     apodize(distmap, amap, radius, pixbool, false);
 	

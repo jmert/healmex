@@ -1,4 +1,4 @@
-function amap = apodize_mask(map, radius, order)
+function amap = apodize_mask(map, radius, nest)
 % amap = apodize_mask(map, radius, order)
 %
 % INPUTS
@@ -13,11 +13,11 @@ function amap = apodize_mask(map, radius, order)
 % EXAMPLE
 %
 
-  if ~exist('order', 'var') || isempty(order)
-    order = 'RING';
+  if ~exist('nest', 'var') || isempty(nest)
+    nest = false;
   end
   
   nside = healmex.npix2nside(size(map, 1));
   
-  amap = libhealmex(int64(68), int64(nside), char(order), double(map), double(radius));
+  amap = libhealmex(int64(68), int64(nside), logical(nest), double(map), double(radius));
 end
