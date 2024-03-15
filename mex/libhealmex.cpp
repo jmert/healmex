@@ -1431,25 +1431,22 @@ inline double angdist(pointing p1, pointing p2){
 }
 
 void apodize(const Healpix_Map<double> & distmap, Healpix_Map<double> & mask, double radius, bool pixbool,bool inside){
-	double omega = M_PI/radius;
-	int    sign_coef ;
-	
-	if (pixbool) sign_coef = 1;  // Transition from 0 to 1 if pixbool is 1 
-	else         sign_coef = -1; // Transition from 1 to 0 if pixbool is 0
-	if (inside) sign_coef = - sign_coef; // invert the transition to apodize inside
-	double oradius =  radius;//60/60*degr2rad; 
-	#pragma omp parallel for  
-	for(int i = 0; i<distmap.Npix(); i++)
-	{
-		if ((distmap[i] >= oradius) || (approx(distmap[i],Healpix_undef))) mask[i] = 1-pixbool;
-		//if (approx(distmap[i],Healpix_undef)) mask[i] = 1-pixbool;
-		else if ((inside) && (distmap[i]>=radius)) mask[i] = pixbool;
-		else if ((!inside) && (distmap[i]>=radius)) mask[i] = 1-pixbool;
-		else if (distmap[i] ==0) mask[i] = pixbool;
-		else{
-			mask[i] = 0.5 + sign_coef*(0.5* cos(omega * distmap[i]));
-		}
-	}
+  double omega = M_PI/radius;
+  int    sign_coef ;
+  
+  if (pixbool) sign_coef = 1;  // Transition from 0 to 1 if pixbool is 1 
+  else         sign_coef = -1; // Transition from 1 to 0 if pixbool is 0
+  if (inside) sign_coef = - sign_coef; // invert the transition to apodize inside
+  double oradius =  radius;//60/60*degr2rad; 
+  #pragma omp parallel for  
+  for(int i = 0; i<distmap.Npix(); i++) {
+    if ((distmap[i] >= oradius) || (approx(distmap[i],Healpix_undef))) mask[i] = 1-pixbool;
+    //if (approx(distmap[i],Healpix_undef)) mask[i] = 1-pixbool;
+    else if ((inside) && (distmap[i]>=radius)) mask[i] = pixbool;
+    else if ((!inside) && (distmap[i]>=radius)) mask[i] = 1-pixbool;
+    else if (distmap[i] ==0) mask[i] = pixbool;
+    else mask[i] = 0.5 + sign_coef*(0.5* cos(omega * distmap[i]));
+  }
 }
 
 // Distance map : starting value is 2*pi outside of the mask and 0 inside
@@ -1460,7 +1457,7 @@ void apodize(const Healpix_Map<double> & distmap, Healpix_Map<double> & mask, do
 void computeDistance_in(const Healpix_Map<double> & mask, Healpix_Map<double> & distmap, double radius,bool pixbool){
   vector<int> listpix;
   double mind;
-  for(int i = 0; i<mask.Npix();i++){
+  for(int i = 0; i<mask.Npix();i++) {
     // for each point in the mask
     if(mask[i] == pixbool){
       pointing pixcenter = mask.pix2ang(i);
@@ -1472,11 +1469,11 @@ void computeDistance_in(const Healpix_Map<double> & mask, Healpix_Map<double> & 
 		double v = distmap[*p];
 		// for each point of the disk outside of the mask
 		if(v==2*M_PI){
-			pointing p2 = mask.pix2ang(*p);
-		    // get the distance
-			double da = angdist(pixcenter,p2);
-		    // get the minimum distance
-		    if (da<mind) mind = da;
+		  pointing p2 = mask.pix2ang(*p);
+		  // get the distance
+		  double da = angdist(pixcenter,p2);
+		  // get the minimum distance
+		  if (da<mind) mind = da;
 		}
       }
       // update the distance value if a minimum is found
@@ -1500,15 +1497,15 @@ void computeDistance_out(const Healpix_Map<double> & mask, Healpix_Map<double> &
       // get a disk
       mask.query_disc(pixcenter ,radius, listpix);
       for(vector<int>::iterator p = listpix.begin(); p!=listpix.end(); p++){
-	double v = distmap[*p];
-	// for each point of the disk outside of the mask
+        double v = distmap[*p];
+        // for each point of the disk outside of the mask
       	if(v != 0){
       	  pointing p2 = mask.pix2ang(*p);
-	  // get the distance
+	      // get the distance
       	  double da = angdist(pixcenter,p2);
-	  // get the minimum distance
+	      // get the minimum distance
       	  distmap[*p] = v<da?v:da; 
-	}
+	    }
       }
     }
   }
@@ -1520,7 +1517,7 @@ DISPATCH_FN(apodize_mask) {
     TypedArray<double> radius_ = inputs[4];
 	double radius=radius_[0]*M_PI/180;
 
-    auto npix = 12 * base.Nside() * base.Nside();
+    auto npix = (size_t)12 * base.Nside() * base.Nside();
 
     auto map = healmap();
 	auto amap = healmap();
